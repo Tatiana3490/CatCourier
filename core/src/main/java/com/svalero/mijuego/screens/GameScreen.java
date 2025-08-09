@@ -5,78 +5,85 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.svalero.mijuego.MiJuego;
+import com.svalero.mijuego.entities.Player;
+import com.svalero.mijuego.levels.Level;
+import com.svalero.mijuego.ui.Hud;
 import com.svalero.mijuego.util.Constants;
 
-/**
- * Versión mínima: sólo muestra "Nivel X" y permite ir a GameOver con ESC
- * y pasar a siguiente nivel con ENTER. Más adelante aquí irá el mundo, player, HUD, etc.
- */
 public class GameScreen implements Screen {
     private final MiJuego game;
-    private final int level; // 1 o 2 para la primera entrega
+    private final int levelNumber;
+    private OrthographicCamera worldCam;
+    private ExtendViewport worldViewport;
+    private ShapeRenderer shapes;
+    private Player player;
+    private Level level;
+    private Hud hud;
 
-    private OrthographicCamera camera;
-    private Stage stage; // reservado para HUD/overlays más adelante
-    private BitmapFont font;
-    private GlyphLayout layout;
-
-    public GameScreen(MiJuego game, int level) {
+    public GameScreen(MiJuego game, int levelNumber){
         this.game = game;
-        this.level = level;
+        this.levelNumber = levelNumber;
     }
 
     @Override
     public void show() {
-        camera = new OrthographicCamera();
-        stage = new Stage(new FitViewport(Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT, camera), game.batch);
-        font = new BitmapFont();
-        layout = new GlyphLayout();
-        Gdx.input.setInputProcessor(stage); // por ahora, aunque no hay UI
+        worldCam = new OrthographicCamera();
+        worldViewport = new ExtendViewport(16f, 9f, worldCam);
+        shapes = new ShapeRenderer();
+        level = Level.create(levelNumber);
+        player = new Player(2f, 2f);
+        hud = new Hud(game.batch);
+        hud.setLevel(levelNumber);
+        Gdx.input.setInputProcessor(hud.stage);
     }
 
     @Override
     public void render(float delta) {
-        Gdx.gl.glClearColor(0.05f, 0.09f, 0.13f, 1f);
+        player.update(delta, level.solids);
+        worldCam.position.set(player.pos.x + Constants.PLAYER_W/2f, Math.max(player.pos.y, 4.5f), 0);
+        float halfW = worldViewport.getWorldWidth()/2f;
+        if (worldCam.position.x < halfW) worldCam.position.x = halfW;
+        if (worldCam.position.x > level.widthUnits - halfW) worldCam.position.x = level.widthUnits - halfW;
+        worldCam.update();
+        if (player.getBounds().overlaps(level.exit)){
+            if (levelNumber == 1) game.setScreen(new GameScreen(game, 2));
+            else game.setScreen(new GameOverScreen(game, player.score));
+            return;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)){
+            game.setScreen(new GameOverScreen(game, player.score));
+            return;
+        }
+        Gdx.gl.glClearColor(0.12f,0.14f,0.18f,1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-        // Entrada mínima para navegar entre estados mientras no hay lógica
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            game.setScreen(new GameOverScreen(game, /*score=*/0));
-            return;
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-            if (level == 1) game.setScreen(new GameScreen(game, 2));
-            else game.setScreen(new GameOverScreen(game, 0));
-            return;
-        }
-
-        // Texto centrado: "Nivel X"
-        String text = "Nivel " + level + " (ENTER → siguiente / ESC → Game Over)";
-        layout.setText(font, text);
-        float x = (Constants.VIRTUAL_WIDTH - layout.width) / 2f;
-        float y = (Constants.VIRTUAL_HEIGHT + layout.height) / 2f;
-
-        game.batch.begin();
-        font.draw(game.batch, text, x, y);
-        game.batch.end();
-
-        stage.act(delta);
-        stage.draw();
+        shapes.setProjectionMatrix(worldCam.combined);
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        for (Rectangle r : level.solids) shapes.rect(r.x, r.y, r.width, r.height);
+        shapes.setColor(0.1f, 0.7f, 0.3f, 1f);
+        shapes.rect(level.exit.x, level.exit.y, level.exit.width, level.exit.height);
+        shapes.setColor(0.9f, 0.9f, 0.1f, 1f);
+        shapes.rect(player.pos.x, player.pos.y, Constants.PLAYER_W, Constants.PLAYER_H);
+        shapes.end();
+        shapes.setColor(1,1,1,1);
+        hud.setScore(player.score);
+        hud.setEnergy(player.energy);
+        hud.stage.act(delta);
+        hud.stage.draw();
     }
 
-    @Override public void resize(int width, int height) { stage.getViewport().update(width, height, true); }
-    @Override public void pause() {}
-    @Override public void resume() {}
-    @Override public void hide() {}
-
-    @Override
-    public void dispose() {
-        if (stage != null) stage.dispose();
-        if (font != null) font.dispose();
+    @Override public void resize(int width, int height){
+        worldViewport.update(width, height, true);
+        hud.stage.getViewport().update(width, height, true);
+    }
+    @Override public void pause(){}
+    @Override public void resume(){}
+    @Override public void hide(){}
+    @Override public void dispose() {
+        if (shapes != null) shapes.dispose();
+        if (hud != null) hud.stage.dispose();
     }
 }
