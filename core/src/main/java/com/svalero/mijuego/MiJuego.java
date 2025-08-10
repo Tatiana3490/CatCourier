@@ -2,28 +2,34 @@ package com.svalero.mijuego;
 
 
 import com.badlogic.gdx.Game;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.utils.ScreenUtils;
 import com.svalero.mijuego.screens.MenuScreen;
 
 public class MiJuego extends Game {
-    public SpriteBatch batch; // Usable en todas las pantallas
+    public SpriteBatch batch;
+    public Music bgm; // ← música global
 
     @Override
     public void create() {
         batch = new SpriteBatch();
-        setScreen(new MenuScreen(this));
-    }
 
-    @Override
-    public void render() {
-        ScreenUtils.clear(0.07f, 0.07f, 0.09f, 1f); // Fondo oscuro por defecto
-        super.render(); // delega en la screen actual
+        // Cargar y reproducir una sola vez
+        if (Gdx.files.internal("music/bgm.ogg").exists()) {
+            bgm = Gdx.audio.newMusic(Gdx.files.internal("music/bgm.ogg"));
+            bgm.setLooping(true);
+            bgm.setVolume(0.5f);
+            bgm.play();
+        }
+
+        setScreen(new MenuScreen(this));
     }
 
     @Override
     public void dispose() {
         if (batch != null) batch.dispose();
+        if (bgm != null) bgm.dispose(); // se destruye al cerrar el juego
         if (getScreen() != null) getScreen().dispose();
     }
 }

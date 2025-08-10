@@ -1,1 +1,6 @@
 libgdx.png
+music/bgm.ogg
+player.png
+sfx/collect.wav
+sfx/hit.wav
+sfx/jump.wav

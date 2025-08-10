@@ -9,7 +9,7 @@ import lombok.var;
 
 public class Hud {
     public final Stage stage;
-    private final Label scoreL, energyL, levelL;
+    private final Label scoreL, energyL, levelL, goalL;
 
     public Hud(com.badlogic.gdx.graphics.g2d.Batch sharedBatch){
         stage = new Stage(new FitViewport(Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT), sharedBatch);
@@ -20,12 +20,16 @@ public class Hud {
         scoreL = new Label("Score: 0", skin);
         energyL = new Label("Energía: 100", skin);
         levelL = new Label("Nivel: 1", skin);
+        goalL  = new Label("Paquetes: 0/0", skin);
         root.top().left();
         root.add(scoreL).pad(10);
         root.add(energyL).pad(10);
-        root.add(levelL).expandX().left().pad(10);
+        root.add(levelL).pad(10);
+        root.add(goalL).expandX().left().pad(10);
     }
     public void setScore(int v){ scoreL.setText("Score: " + v); }
     public void setEnergy(int v){ energyL.setText("Energía: " + v); }
     public void setLevel(int v){ levelL.setText("Nivel: " + v); }
+    public void setGoal(int have, int need){ goalL.setText("Paquetes: " + have + "/" + need); }
 }
+
