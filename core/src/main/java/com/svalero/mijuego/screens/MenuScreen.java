@@ -15,7 +15,7 @@ public class MenuScreen implements Screen {
     private final MiJuego game;
     private Stage stage;
     private Skin skin;
-    private boolean built = false;   // <- evita construir dos veces
+    private boolean built = false;
 
     public MenuScreen(MiJuego game) {
         this.game = game;
@@ -30,8 +30,8 @@ public class MenuScreen implements Screen {
             skin = UiStyles.makeSkin();
         }
 
-        if (!built) {            // <- solo la primera vez
-            stage.clear();       // por si acaso
+        if (!built) {
+            stage.clear();
             buildUI();
             built = true;
         }

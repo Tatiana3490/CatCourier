@@ -1,3 +1,9 @@
+ally_healer.png
+collectible.png
+door_closed.png
+door_open.png
+enemy_flyer.png
+enemy_walker.png
 fonts/NotoSans-Regular.ttf
 libgdx.png
 music/bgm.ogg

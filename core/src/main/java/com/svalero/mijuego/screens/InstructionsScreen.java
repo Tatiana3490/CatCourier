@@ -39,7 +39,7 @@ public class InstructionsScreen implements Screen {
             "Objetivo: recoge los paquetes requeridos para abrir la salida.\n" +
                 "Controles: FLECHA IZQ. /FELCHA DRCH. o A/D para moverte, ESPACIO para saltar.\n" +
                 "P o ESC para pausar.\n" +
-                "Evita enemigos rojos/magenta y toca el aliado azul para curarte.";
+                "Evita enemigos snake/badbird y toca el heart para curarte.";
         Label body = new Label(txt, skin);
         body.setWrap(true);
         body.setAlignment(Align.topLeft);
