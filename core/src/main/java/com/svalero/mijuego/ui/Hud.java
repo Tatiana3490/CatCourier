@@ -2,6 +2,7 @@ package com.svalero.mijuego.ui;
 
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.svalero.mijuego.util.Constants;
@@ -13,7 +14,7 @@ public class Hud {
 
     public Hud(com.badlogic.gdx.graphics.g2d.Batch sharedBatch){
         stage = new Stage(new FitViewport(Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT), sharedBatch);
-        var skin = UiStyles.makeSkin();
+        Skin skin = UiStyles.makeSkin();
         Table root = new Table();
         root.setFillParent(true);
         stage.addActor(root);

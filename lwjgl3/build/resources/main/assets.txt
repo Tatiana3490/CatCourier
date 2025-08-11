@@ -1,3 +1,4 @@
+fonts/NotoSans-Regular.ttf
 libgdx.png
 music/bgm.ogg
 player.png

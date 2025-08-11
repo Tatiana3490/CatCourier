@@ -5,6 +5,7 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.svalero.mijuego.audio.AudioManager;
 import com.svalero.mijuego.screens.MenuScreen;
 
 public class MiJuego extends Game {
@@ -21,6 +22,7 @@ public class MiJuego extends Game {
             bgm.setLooping(true);
             bgm.setVolume(0.5f);
             bgm.play();
+            AudioManager.registerMusic(bgm);
         }
 
         setScreen(new MenuScreen(this));

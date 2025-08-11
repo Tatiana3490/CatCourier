@@ -1,56 +1,111 @@
 package com.svalero.mijuego.ui;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.NinePatch;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 
+/**
+ * Skin con fuente TTF (FreeType). Incluye estilos:
+ * Label (default/title), TextButton, Button, Window,
+ * Slider (default-horizontal), CheckBox y ScrollPane.
+ */
 public class UiStyles {
+
     public static Skin makeSkin() {
         Skin skin = new Skin();
 
-        // Fuente por defecto
-        BitmapFont font = new BitmapFont();
+        // === 1) Genera una BitmapFont desde TTF ===
+        // Asegúrate de tener assets/fonts/NotoSans-Regular.ttf
+        FreeTypeFontGenerator gen = new FreeTypeFontGenerator(Gdx.files.internal("fonts/NotoSans-Regular.ttf"));
+
+        // Fuente normal (UI)
+        FreeTypeFontGenerator.FreeTypeFontParameter p = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        p.size = 18; // tamaño en píxeles
+        // Incluimos flechas y corchetes por si los usas en instrucciones
+        p.characters = FreeTypeFontGenerator.DEFAULT_CHARS + "←→↑↓[]";
+        BitmapFont font = gen.generateFont(p);
+
+        // Fuente de título (un poco más grande)
+        FreeTypeFontGenerator.FreeTypeFontParameter pTitle = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        pTitle.size = 22;
+        pTitle.characters = p.characters;
+        BitmapFont fontTitle = gen.generateFont(pTitle);
+
+        gen.dispose();
+
+        // Registramos fuentes en el Skin
         skin.add("default-font", font, BitmapFont.class);
+        skin.add("title-font",   fontTitle, BitmapFont.class);
 
-        // Drawables: rectángulos simples con colores
-        Drawable up = colorDrawable(0x2D, 0x6A, 0x4F, 255);     // verde
-        Drawable down = colorDrawable(0x1E, 0x46, 0x36, 255);   // verde oscuro
-        Drawable over = colorDrawable(0x3B, 0x8F, 0x6B, 255);   // verde claro
-        Drawable bg = colorDrawable(20, 20, 24, 200);            // fondo semitransparente
+        // === 2) Drawables planos para botones/slider/panel ===
+        Drawable btnUp    = colored(0x2d2f39ff);
+        Drawable btnDown  = colored(0x22242bff);
+        Drawable btnChk   = colored(0x3a3d49ff);
+        Drawable panelBg  = colored(0x1e2027ff);
+        Drawable sliderBg = colored(0x3a3d49ff);
+        Drawable sliderKn = colored(0xf9a11bff);
 
-        // Label
-        Label.LabelStyle labelStyle = new Label.LabelStyle();
-        labelStyle.font = font;
-        labelStyle.fontColor = Color.WHITE;
-        skin.add("default", labelStyle);
+        // === 3) Label styles ===
+        skin.add("default", new Label.LabelStyle(font, Color.WHITE));
+        skin.add("title",   new Label.LabelStyle(fontTitle, Color.valueOf("ffd37a")));
 
-        // TextButton
+        // === 4) TextButton ===
         TextButton.TextButtonStyle tbs = new TextButton.TextButtonStyle();
-        tbs.font = font;
-        tbs.up = up;
-        tbs.down = down;
-        tbs.over = over;
-        tbs.fontColor = Color.WHITE;
+        tbs.up = btnUp; tbs.down = btnDown; tbs.checked = btnChk;
+        tbs.font = font; tbs.fontColor = Color.WHITE;
         skin.add("default", tbs);
 
-        // Fondo genérico para paneles
-        skin.add("panel-bg", bg);
+        // === 5) Button (sin texto) ===
+        Button.ButtonStyle bs = new Button.ButtonStyle();
+        bs.up = btnUp; bs.down = btnDown; bs.checked = btnChk;
+        skin.add("default", bs);
+
+        // === 6) Window / Panel ===
+        Window.WindowStyle ws = new Window.WindowStyle();
+        ws.background = panelBg;
+        ws.titleFont = fontTitle;
+        ws.titleFontColor = Color.WHITE;
+        skin.add("default", ws);
+
+        // === 7) Slider horizontal (clave: "default-horizontal") ===
+        Slider.SliderStyle sss = new Slider.SliderStyle();
+        sss.background  = sliderBg;
+        sss.knob        = sliderKn;
+        sss.knobBefore  = colored(0xf4c97bff);
+        sss.knobAfter   = colored(0x2d2f39ff);
+        skin.add("default-horizontal", sss);
+
+        // === 8) CheckBox (opcional) ===
+        CheckBox.CheckBoxStyle cbs = new CheckBox.CheckBoxStyle();
+        cbs.checkboxOn  = colored(0xf9a11bff);
+        cbs.checkboxOff = colored(0x3a3d49ff);
+        cbs.font = font; cbs.fontColor = Color.WHITE;
+        skin.add("default", cbs);
+
+        // === 9) ScrollPane (opcional) ===
+        ScrollPane.ScrollPaneStyle sps = new ScrollPane.ScrollPaneStyle();
+        sps.background = panelBg;
+        skin.add("default", sps);
+
         return skin;
     }
 
-    private static Drawable colorDrawable(int r, int g, int b, int a) {
-        Pixmap pm = new Pixmap(10, 10, Pixmap.Format.RGBA8888);
-        pm.setColor(r/255f, g/255f, b/255f, a/255f);
+    /** Drawable de color sólido con Pixmap (8x8) y NinePatch (bordes 2px). */
+    private static Drawable colored(int rgba8888) {
+        Pixmap pm = new Pixmap(8, 8, Pixmap.Format.RGBA8888);
+        Color temp = new Color();
+        Color.rgba8888ToColor(temp, rgba8888);
+        pm.setColor(temp);
         pm.fill();
-        Texture tx = new Texture(pm);
+        NinePatch np = new NinePatch(new Texture(pm), 2, 2, 2, 2);
         pm.dispose();
-        return new NinePatchDrawable(new NinePatch(tx, 3,3,3,3));
+        return new NinePatchDrawable(np);
     }
 }

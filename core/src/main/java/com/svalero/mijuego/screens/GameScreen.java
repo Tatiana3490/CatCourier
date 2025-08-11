@@ -20,6 +20,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.svalero.mijuego.MiJuego;
+import com.svalero.mijuego.audio.AudioManager;
 import com.svalero.mijuego.entities.*;
 import com.svalero.mijuego.items.Collectible;
 import com.svalero.mijuego.levels.Level;
@@ -109,7 +110,7 @@ public class GameScreen implements Screen {
         // ----- ANIMACIONES -----
         if (Gdx.files.internal("player.png").exists()) {
             playerSheet = new Texture(Gdx.files.internal("player.png"));
-            int rows = 3, cols = 6; // ajusta a tu spritesheet real
+            int rows = 3, cols = 6; // ajusta a spritesheet real
             playerFrames = TextureRegion.split(
                 playerSheet,
                 playerSheet.getWidth() / cols,
@@ -202,9 +203,9 @@ public class GameScreen implements Screen {
         }
 
         // TEST TECLAS para SFX (quitar cuando confirmes que suenan)
-        if (Gdx.input.isKeyJustPressed(Input.Keys.J) && sJump != null)    sJump.play(0.8f);
-        if (Gdx.input.isKeyJustPressed(Input.Keys.C) && sCollect != null) sCollect.play(0.8f);
-        if (Gdx.input.isKeyJustPressed(Input.Keys.H) && sHit != null)     sHit.play(0.8f);
+        if (Gdx.input.isKeyJustPressed(Input.Keys.J) && sJump != null)    AudioManager.play(sJump);
+        if (Gdx.input.isKeyJustPressed(Input.Keys.C) && sCollect != null) AudioManager.play(sCollect);
+        if (Gdx.input.isKeyJustPressed(Input.Keys.H) && sHit != null)     AudioManager.play(sHit);
 
         if (!paused) {
             // --- LÓGICA SOLO SI NO ESTÁ PAUSADO ---
@@ -215,7 +216,7 @@ public class GameScreen implements Screen {
 
             // Detectar inicio de salto
             if (lastOnGround && !player.onGround && player.vel.y > 0f && sJump != null) {
-                sJump.play(0.6f);
+                AudioManager.play(sJump);
             }
             lastOnGround = player.onGround;
 
@@ -229,7 +230,7 @@ public class GameScreen implements Screen {
                     int prev = player.energy;
                     player.energy = Math.max(0, player.energy - 10);
                     if (player.energy < prev && hitCooldown <= 0f && sHit != null) {
-                        sHit.play(0.6f);
+                        AudioManager.play(sHit);
                         hitCooldown = 0.4f;
                     }
                 }
@@ -239,7 +240,7 @@ public class GameScreen implements Screen {
                     int prev = player.energy;
                     player.energy = Math.max(0, player.energy - 10);
                     if (player.energy < prev && hitCooldown <= 0f && sHit != null) {
-                        sHit.play(0.6f);
+                        AudioManager.play(sHit);
                         hitCooldown = 0.4f;
                     }
                 }
@@ -252,16 +253,17 @@ public class GameScreen implements Screen {
                     c.collect();
                     player.score += c.value;
                     collectedPackages++;
-                    if (sCollect != null) sCollect.play(0.6f);
+                    if (sCollect != null) AudioManager.play(sCollect);
                 }
             }
             items.removeIf(Collectible::isCollected);
 
-            // Aliado
+            // Aliado (curación + sonido)
             for (AllyHealer a : allies){
                 if (!a.isUsed() && player.getBounds().overlaps(a.getBounds())){
                     player.energy = Math.min(100, player.energy + a.healAmount);
                     a.markUsed();
+                    if (sCollect != null) AudioManager.play(sCollect);
                 }
             }
 
@@ -299,29 +301,38 @@ public class GameScreen implements Screen {
         Gdx.gl.glClearColor(0.12f,0.14f,0.18f,1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Mundo geométrico
         shapes.setProjectionMatrix(worldCam.combined);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
+
+        // 1) Suelo/plataformas (color fijo para evitar heredar colores previos)
+        shapes.setColor(0.30f, 0.35f, 0.42f, 1f);
         for (Rectangle r : level.solids) shapes.rect(r.x, r.y, r.width, r.height);
+
+        // 2) Salida (verde si se puede salir, verde oscuro si no)
         boolean canExitNow = collectedPackages >= requiredPackages;
-        if (canExitNow) shapes.setColor(0.1f, 0.7f, 0.3f, 1f); else shapes.setColor(0.05f, 0.35f, 0.15f, 1f);
+        if (canExitNow) shapes.setColor(0.1f, 0.7f, 0.3f, 1f);
+        else            shapes.setColor(0.05f, 0.35f, 0.15f, 1f);
         shapes.rect(level.exit.x, level.exit.y, level.exit.width, level.exit.height);
 
-        // Si no hay sprite, dibuja rectángulo del player
+        // 3) Placeholder player (si no hay sprite)
         if (playerSheet == null) {
             shapes.setColor(0.9f, 0.9f, 0.1f, 1f);
             shapes.rect(player.pos.x, player.pos.y, Constants.PLAYER_W, Constants.PLAYER_H);
         }
 
-        // Enemigos / Aliados / Items
+        // 4) Enemigos / Aliados / Items
         shapes.setColor(0.85f, 0.2f, 0.2f, 1f);
         for (EnemyWalker e : enemiesWalk) shapes.rect(e.getBounds().x, e.getBounds().y, e.getBounds().width, e.getBounds().height);
+
         shapes.setColor(0.85f, 0.2f, 0.75f, 1f);
         for (EnemyFlyer f : enemiesFly)  shapes.rect(f.getBounds().x, f.getBounds().y, f.getBounds().width, f.getBounds().height);
+
         shapes.setColor(0.2f, 0.4f, 0.95f, 1f);
         for (AllyHealer a : allies) if (!a.isUsed()) shapes.rect(a.getBounds().x, a.getBounds().y, a.getBounds().width, a.getBounds().height);
+
         shapes.setColor(0.95f, 0.55f, 0.1f, 1f);
         for (Collectible c : items) if (!c.isCollected()) shapes.rect(c.getBounds().x, c.getBounds().y, c.getBounds().width, c.getBounds().height);
+
         shapes.end();
 
         // Dibujo del jugador con sprite (si existe)
