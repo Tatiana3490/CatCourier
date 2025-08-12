@@ -10,12 +10,10 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -30,13 +28,9 @@ import com.svalero.mijuego.ui.UiStyles;
 import com.svalero.mijuego.util.Constants;
 
 import java.util.*;
+import java.util.List;
 
-/**
- * Pantalla principal del juego.
- * - Actualiza y dibuja jugador, enemigos, aliados y coleccionables
- * - Muestra HUD y gestiona la pausa
- * - Dibuja sprites PNG (si existen) o “rectángulos fallback” si no los tienes.
- */
+/*Pantalla principal del juego.*/
 public class GameScreen implements Screen {
 
     private final MiJuego game;
@@ -91,11 +85,16 @@ public class GameScreen implements Screen {
     private Texture texDoorOpen;
 
     // --- Escala visual de la puerta y ajuste contra el suelo ---
-    //     * X e Y se escalan por separado (ancho/alto)
-    //     * DOOR_FLOOR_EPS empuja ligeramente hacia abajo para “apoyarla” en el suelo
     private static final float DOOR_DRAW_SCALE_X = 1.8f;
     private static final float DOOR_DRAW_SCALE_Y = 1.8f;
     private static final float DOOR_FLOOR_EPS    = 1.0f;
+
+    // --- Mute global desde el menú de pausa ---
+    private boolean muted = false;
+    private float prevMusicVol = 1f;
+    private float prevSfxVol   = 1f;
+    private boolean muteMusic  = false;
+    private boolean muteSfx    = false;
 
     public GameScreen(MiJuego game, int levelNumber){
         this.game = game;
@@ -113,31 +112,72 @@ public class GameScreen implements Screen {
         level = Level.create(levelNumber);
         player = new Player(2f, 2f);
 
-        // 3) Spawns rápidos por nivel (puedes extraer a Level si quieres más limpio)
-        if (levelNumber == 1){
-            enemiesWalk.add(new EnemyWalker(6f, 1f, 6f, 10f));
-            enemiesFly.add(new EnemyFlyer(12f, 3.0f));
-            items.add(new Collectible(10.5f, 4.7f));
-            items.add(new Collectible(16.0f, 5.9f));
-            allies.add(new AllyHealer(8.5f, 1f));
-            requiredPackages = 2;
-        } else {
-            enemiesWalk.add(new EnemyWalker(7f, 1f, 7f, 12f));
-            enemiesWalk.add(new EnemyWalker(19f, 1f, 19f, 23f));
-            enemiesFly.add(new EnemyFlyer(15f, 4.2f));
-            enemiesFly.add(new EnemyFlyer(24f, 5.0f));
-            items.add(new Collectible(11.2f, 4.5f));
-            items.add(new Collectible(17.0f, 6.3f));
-            items.add(new Collectible(22.2f, 3.9f));
-            allies.add(new AllyHealer(21.5f, 1f));
-            requiredPackages = 3;
+        // 3) Spawns por nivel (enemigos, items, aliados y paquetes requeridos)
+        switch (levelNumber) {
+            case 1:
+                enemiesWalk.add(new EnemyWalker(6f, 1f, 6f, 10f));
+                enemiesFly.add(new EnemyFlyer(12f, 3.0f));
+                items.add(new Collectible(10.5f, 4.7f));
+                items.add(new Collectible(16.0f, 5.9f));
+                allies.add(new AllyHealer(8.5f, 1f));
+                requiredPackages = 2;
+                break;
+
+            case 2:
+                enemiesWalk.add(new EnemyWalker(7f, 1f, 7f, 12f));
+                enemiesWalk.add(new EnemyWalker(19f, 1f, 19f, 23f));
+                enemiesFly.add(new EnemyFlyer(15f, 4.2f));
+                enemiesFly.add(new EnemyFlyer(24f, 5.0f));
+                items.add(new Collectible(11.2f, 4.5f));
+                items.add(new Collectible(17.0f, 6.3f));
+                items.add(new Collectible(22.2f, 3.9f));
+                allies.add(new AllyHealer(21.5f, 1f));
+                requiredPackages = 3;
+                break;
+
+            case 3:
+                enemiesWalk.add(new EnemyWalker(5.5f, 1f, 5.5f, 9f));
+                enemiesWalk.add(new EnemyWalker(18f, 1f, 18f, 23f));
+                enemiesFly.add(new EnemyFlyer(13f, 3.2f));
+                enemiesFly.add(new EnemyFlyer(25f, 4.0f));
+                items.add(new Collectible(6.5f, 2.7f));
+                items.add(new Collectible(12.2f, 3.2f));
+                items.add(new Collectible(19.0f, 4.1f));
+                allies.add(new AllyHealer(22.5f, 1f));
+                requiredPackages = 3;
+                break;
+
+            case 4:
+                // Enemigos
+                enemiesWalk.add(new EnemyWalker(3.5f, 1f, 3.5f, 9f));
+                enemiesWalk.add(new EnemyWalker(21f, 1f, 21f, 27f));
+                enemiesWalk.add(new EnemyWalker(33f, 1f, 33f, 38f));
+                enemiesFly.add(new EnemyFlyer(16f, 4.0f));
+                enemiesFly.add(new EnemyFlyer(28f, 3.6f));
+
+                // === Cajas ENCIMA de las plataformas del Level 4 ===
+                // Plataformas Level 4 (de tu Level.java):
+                // (5, 2.2, 3, 0.6)   -> top = 2.8   -> centro X = 6.5
+                // (15, 2.8, 3, 0.6)  -> top = 3.4   -> centro X = 16.5
+                // (23, 3.2, 3, 0.6)  -> top = 3.8   -> centro X = 24.5   (AJUSTADA)
+                // (34, 2.8, 3, 0.6)  -> top = 3.4   -> centro X = 35.5
+                final float EPS = 0.05f; // para que no se “clave” visualmente
+
+                items.add(new Collectible( 6.5f, 2.8f + EPS));
+                items.add(new Collectible(16.5f, 3.4f + EPS));
+                items.add(new Collectible(24.5f, 3.8f + EPS)); // <- esta era la conflictiva
+                items.add(new Collectible(35.5f, 3.4f + EPS));
+
+                allies.add(new AllyHealer(31f, 1f));
+                requiredPackages = 4;
+                break;
         }
         collectedPackages = 0;
 
         // 4) Animaciones del jugador (si falta player.png, dibujaremos un rectángulo)
         if (Gdx.files.internal("player.png").exists()) {
             playerSheet = new Texture("player.png");
-            int rows = 3, cols = 6; // ajusta a tu spritesheet real
+            int rows = 3, cols = 6;
             playerFrames = TextureRegion.split(
                 playerSheet,
                 playerSheet.getWidth() / cols,
@@ -152,7 +192,7 @@ public class GameScreen implements Screen {
             animJump.setPlayMode(com.badlogic.gdx.graphics.g2d.Animation.PlayMode.NORMAL);
         }
 
-        // 5) Sonidos (cargamos solo si existen, para no romper nada)
+        // 5) Sonidos (cargamos solo si existen)
         try {
             if (Gdx.files.internal("sfx/jump.wav").exists())
                 sJump = Gdx.audio.newSound(Gdx.files.internal("sfx/jump.wav"));
@@ -164,7 +204,7 @@ public class GameScreen implements Screen {
             Gdx.app.error("SFX", "Error cargando SFX: " + e.getMessage(), e);
         }
 
-        // 6) Sprites PNG (si faltan, simplemente no se dibujan y usamos fallback geométrico)
+        // 6) Sprites PNG (fallback geométrico si faltan)
         if (Gdx.files.internal("enemy_walker.png").exists()) texEnemyWalker = new Texture("enemy_walker.png");
         if (Gdx.files.internal("enemy_flyer.png").exists())  texEnemyFlyer  = new Texture("enemy_flyer.png");
         if (Gdx.files.internal("ally_healer.png").exists())  texAllyHealer  = new Texture("ally_healer.png");
@@ -174,46 +214,90 @@ public class GameScreen implements Screen {
         if (Gdx.files.internal("door_closed.png").exists()) texDoorClosed = new Texture("door_closed.png");
         if (Gdx.files.internal("door_open.png").exists())   texDoorOpen   = new Texture("door_open.png");
 
-        // 7) HUD arriba del todo; por defecto el input va al HUD
+        // 7) HUD
         hud = new Hud(game.batch);
         hud.setLevel(levelNumber);
         hud.setGoal(collectedPackages, requiredPackages);
         Gdx.input.setInputProcessor(hud.stage);
 
-        // 8) Ventana de pausa (otro stage independiente)
+        // 8) Ventana de pausa
         setupPauseUI();
     }
 
-    /** Construye la ventana de pausa con dos botones. */
+    /** Construye la ventana de pausa con controles de sonido y navegación. */
     private void setupPauseUI(){
         pauseSkin = UiStyles.makeSkin();
         pauseStage = new Stage(new FitViewport(Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT), game.batch);
 
         Table panel = new Table(pauseSkin);
         panel.setFillParent(true);
-        panel.center();
-
-        Label title = new Label("PAUSA", pauseSkin);
-        TextButton btnResume = new TextButton("Continuar", pauseSkin);
-        TextButton btnMenu   = new TextButton("Menú principal", pauseSkin);
-
-        panel.add(title).padBottom(30).row();
-        panel.add(btnResume).width(260).height(52).pad(6).row();
-        panel.add(btnMenu).width(260).height(52).pad(6).row();
-
+        panel.center().pad(20);
         pauseStage.addActor(panel);
 
+        Label title = new Label("PAUSA", pauseSkin, "title");
+
+        // CheckBoxes de sonido
+        CheckBox cbMuteAll   = new CheckBox(" Silencio total", pauseSkin);
+        CheckBox cbMuteMusic = new CheckBox(" Silenciar música", pauseSkin);
+        CheckBox cbMuteSfx   = new CheckBox(" Silenciar efectos", pauseSkin);
+
+        cbMuteAll.setChecked(muteMusic && muteSfx);
+        cbMuteMusic.setChecked(muteMusic);
+        cbMuteSfx.setChecked(muteSfx);
+
+        // Botones
+        TextButton btnResume = new TextButton("Continuar", pauseSkin);
+        TextButton btnMenu   = new TextButton("Menú principal", pauseSkin);
+        TextButton btnExit   = new TextButton("Salir del juego", pauseSkin);
+
+        // Layout
+        panel.add(title).padBottom(24).row();
+        panel.add(cbMuteAll).left().padBottom(10).row();
+        panel.add(cbMuteMusic).left().padBottom(10).row();
+        panel.add(cbMuteSfx).left().padBottom(18).row();
+        panel.add(btnResume).width(260).height(52).pad(6).row();
+        panel.add(btnMenu).width(260).height(52).pad(6).row();
+        panel.add(btnExit).width(260).height(52).padTop(16).row();
+
+        // Listeners de sonido
+        cbMuteAll.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ChangeListener() {
+            @Override public void changed(ChangeEvent event, Actor actor) {
+                setMuteAll(cbMuteAll.isChecked());
+                cbMuteMusic.setChecked(muteMusic);
+                cbMuteSfx.setChecked(muteSfx);
+            }
+        });
+        cbMuteMusic.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ChangeListener() {
+            @Override public void changed(ChangeEvent event, Actor actor) {
+                setMuteMusic(cbMuteMusic.isChecked());
+                cbMuteAll.setChecked(muteMusic && muteSfx);
+            }
+        });
+        cbMuteSfx.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ChangeListener() {
+            @Override public void changed(ChangeEvent event, Actor actor) {
+                setMuteSfx(cbMuteSfx.isChecked());
+                cbMuteAll.setChecked(muteMusic && muteSfx);
+            }
+        });
+
+        // Botones de control
         btnResume.addListener(new ClickListener(){
             @Override public void clicked(InputEvent event, float x, float y) {
                 paused = false;
                 Gdx.input.setInputProcessor(hud.stage);
-                if (game.bgm != null) game.bgm.play();
+                if (!muteMusic && game.bgm != null) game.bgm.play();
+                else if (game.bgm != null) game.bgm.pause();
             }
         });
         btnMenu.addListener(new ClickListener(){
             @Override public void clicked(InputEvent event, float x, float y) {
                 paused = false;
                 game.setScreen(new MenuScreen(game));
+            }
+        });
+        btnExit.addListener(new ClickListener(){
+            @Override public void clicked(InputEvent event, float x, float y) {
+                Gdx.app.exit();
             }
         });
     }
@@ -230,27 +314,48 @@ public class GameScreen implements Screen {
         }
     }
 
+    /** Activa/desactiva silencio total (música + efectos). */
+    private void setMuted(boolean value) {
+        muted = value;
+        if (muted) {
+            prevMusicVol = AudioManager.getMusicVolume();
+            prevSfxVol   = AudioManager.getSfxVolume();
+            AudioManager.setMusicVolume(0f);
+            AudioManager.setSfxVolume(0f);
+            if (game.bgm != null) game.bgm.setVolume(0f);
+        } else {
+            AudioManager.setMusicVolume(prevMusicVol);
+            AudioManager.setSfxVolume(prevSfxVol);
+            if (game.bgm != null) game.bgm.setVolume(prevMusicVol);
+        }
+    }
+
     @Override
     public void render(float delta) {
-
         // Tecla de pausa (P o ESC)
         if (Gdx.input.isKeyJustPressed(Input.Keys.P) || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             togglePause();
         }
 
-        // Teclas de test para oír SFX (puedes quitarlas cuando no las necesites)
+        // Teclas test SFX
         if (Gdx.input.isKeyJustPressed(Input.Keys.J) && sJump != null)    AudioManager.play(sJump);
         if (Gdx.input.isKeyJustPressed(Input.Keys.C) && sCollect != null) AudioManager.play(sCollect);
         if (Gdx.input.isKeyJustPressed(Input.Keys.H) && sHit != null)     AudioManager.play(sHit);
 
-        // ===== UPDATE (lógica; solo si no está pausado) =====
+        // ===== UPDATE =====
         if (!paused) {
             player.update(delta, level.solids);
 
-            // Enfriamiento del “hit”
+            // Muerte por caída
+            if (player.pos.y < -2f) {
+                game.setScreen(new GameOverScreen(game, player.score));
+                return;
+            }
+
+            // Cooldown hit
             if (hitCooldown > 0f) hitCooldown -= delta;
 
-            // Sonido al iniciar salto (pasar de en suelo -> en el aire)
+            // Sonido al iniciar salto
             if (lastOnGround && !player.onGround && player.vel.y > 0f && sJump != null) {
                 AudioManager.play(sJump);
             }
@@ -260,7 +365,7 @@ public class GameScreen implements Screen {
             for (EnemyWalker e : enemiesWalk) e.update(delta);
             for (EnemyFlyer  f : enemiesFly)  f.update(delta);
 
-            // Colisiones con enemigos (quitan energía + sonido con cooldown)
+            // Colisiones con enemigos
             for (EnemyWalker e : enemiesWalk) {
                 if (player.getBounds().overlaps(e.getBounds())) {
                     int prev = player.energy;
@@ -282,7 +387,7 @@ public class GameScreen implements Screen {
                 }
             }
 
-            // Recoger ítems (suben score y cuentan para abrir la puerta)
+            // Recoger ítems
             for (Iterator<Collectible> it = items.iterator(); it.hasNext();) {
                 Collectible c = it.next();
                 if (!c.isCollected() && player.getBounds().overlaps(c.getBounds())){
@@ -294,7 +399,7 @@ public class GameScreen implements Screen {
             }
             items.removeIf(Collectible::isCollected);
 
-            // Aliado que cura una sola vez al tocarlo
+            // Aliado (curación una vez)
             for (AllyHealer a : allies){
                 if (!a.isUsed() && player.getBounds().overlaps(a.getBounds())){
                     player.energy = Math.min(100, player.energy + a.healAmount);
@@ -303,22 +408,27 @@ public class GameScreen implements Screen {
                 }
             }
 
-            // Cámara sigue al jugador (con límites del nivel)
+            // Cámara sigue al jugador (con límites)
             worldCam.position.set(player.pos.x + Constants.PLAYER_W/2f, Math.max(player.pos.y, 4.5f), 0);
             float halfW = worldViewport.getWorldWidth()/2f;
             if (worldCam.position.x < halfW) worldCam.position.x = halfW;
             if (worldCam.position.x > level.widthUnits - halfW) worldCam.position.x = level.widthUnits - halfW;
             worldCam.update();
 
-            // Cambio de nivel / fin del juego al tocar la salida si ya está abierta
+            // ¿Puede salir?
             boolean canExit = collectedPackages >= requiredPackages;
             if (canExit && player.getBounds().overlaps(level.exit)){
-                if (levelNumber == 1) game.setScreen(new GameScreen(game, 2));
-                else game.setScreen(new GameOverScreen(game, player.score));
-                return; // muy importante cortar aquí
+                int nextLevel = levelNumber + 1;
+                int MAX_LEVEL = 4; // niveles 1..4
+                if (nextLevel <= MAX_LEVEL) {
+                    game.setScreen(new GameScreen(game, nextLevel));
+                } else {
+                    game.setScreen(new GameOverScreen(game, player.score));
+                }
+                return;
             }
 
-            // Elegir frame de animación del jugador
+            // Animación jugador
             stateTime += delta;
             if (playerSheet != null) {
                 boolean moving = Math.abs(player.vel.x) > 0.05f;
@@ -333,27 +443,24 @@ public class GameScreen implements Screen {
             }
         }
 
-        // ===== DRAW / RENDER (pintar) =====
+        // ===== DRAW / RENDER =====
         Gdx.gl.glClearColor(0.12f,0.14f,0.18f,1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Calcular una vez si ya podemos salir (lo usaremos varias veces)
         boolean canExitNow = collectedPackages >= requiredPackages;
         Rectangle exit = level.exit;
 
-        // 1) Geometría básica: suelos + (fallback de puerta si faltan PNGs)
+        // 1) Geometría básica
         shapes.setProjectionMatrix(worldCam.combined);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
 
-        // Suelos/plataformas
         shapes.setColor(0.30f, 0.35f, 0.42f, 1f);
         for (Rectangle r : level.solids) shapes.rect(r.x, r.y, r.width, r.height);
 
-        // Fallback de puerta (solo si NO hay imágenes adecuadas cargadas)
+        // Fallback de puerta (si faltan PNGs)
         if ((texDoorOpen == null && texDoorClosed == null) ||
             (canExitNow && texDoorOpen == null) ||
             (!canExitNow && texDoorClosed == null)) {
-
             shapes.setColor(canExitNow ? 0.1f : 0.05f, canExitNow ? 0.7f : 0.35f, canExitNow ? 0.3f : 0.15f, 1f);
             shapes.rect(exit.x, exit.y, exit.width, exit.height);
         }
@@ -365,38 +472,30 @@ public class GameScreen implements Screen {
         }
         shapes.end();
 
-        // 2) Sprites (PNG): puerta, NPCs, ítems y jugador
+        // 2) Sprites PNG
         game.batch.setProjectionMatrix(worldCam.combined);
         game.batch.begin();
 
-        // Puerta alineada al suelo (si hay PNGs)
+        // Puerta alineada al suelo
         if (texDoorOpen != null || texDoorClosed != null) {
-            // tamaño de dibujo escalado
             float drawW = exit.width  * DOOR_DRAW_SCALE_X;
             float drawH = exit.height * DOOR_DRAW_SCALE_Y;
-
-            // X: centrada respecto al rectángulo de colisión
             float drawX = exit.x + (exit.width - drawW) / 2f;
-
-            // Y: base del sprite apoyada en el suelo (exit.y)
             float drawY = exit.y - DOOR_FLOOR_EPS;
 
-            if (canExitNow && texDoorOpen != null) {
+            if (canExitNow && texDoorOpen != null)
                 game.batch.draw(texDoorOpen, drawX, drawY, drawW, drawH);
-            } else if (!canExitNow && texDoorClosed != null) {
+            else if (!canExitNow && texDoorClosed != null)
                 game.batch.draw(texDoorClosed, drawX, drawY, drawW, drawH);
-            }
         }
 
-        // Enemigo caminante
+        // Enemigos
         if (texEnemyWalker != null) {
             for (EnemyWalker e : enemiesWalk) {
                 Rectangle b = e.getBounds();
                 game.batch.draw(texEnemyWalker, b.x, b.y, b.width, b.height);
             }
         }
-
-        // Enemigo volador
         if (texEnemyFlyer != null) {
             for (EnemyFlyer f : enemiesFly) {
                 Rectangle b = f.getBounds();
@@ -404,7 +503,7 @@ public class GameScreen implements Screen {
             }
         }
 
-        // Aliado (solo si sigue disponible)
+        // Aliado (si sigue disponible)
         if (texAllyHealer != null) {
             for (AllyHealer a : allies) {
                 if (!a.isUsed()) {
@@ -414,7 +513,7 @@ public class GameScreen implements Screen {
             }
         }
 
-        // Ítems no recogidos
+        // Ítems
         if (texCollectible != null) {
             for (Collectible c : items) {
                 if (!c.isCollected()) {
@@ -424,21 +523,21 @@ public class GameScreen implements Screen {
             }
         }
 
-        // Jugador animado (si hay spritesheet)
+        // Jugador animado
         if (playerSheet != null && currentFrame != null) {
             game.batch.draw(currentFrame, player.pos.x, player.pos.y, Constants.PLAYER_W, Constants.PLAYER_H);
         }
 
         game.batch.end();
 
-        // 3) HUD siempre encima
+        // 3) HUD
         hud.setScore(player.score);
         hud.setEnergy(player.energy);
         hud.setGoal(collectedPackages, requiredPackages);
         hud.stage.act(paused ? 0f : Gdx.graphics.getDeltaTime());
         hud.stage.draw();
 
-        // 4) Si está pausado: oscurecer fondo + dibujar ventana de pausa
+        // 4) Pausa
         if (paused){
             Gdx.gl.glEnable(GL20.GL_BLEND);
             shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -464,7 +563,6 @@ public class GameScreen implements Screen {
 
     @Override
     public void dispose(){
-        // Libera todo lo que tenga recursos nativos (GPU/Audio/etc.)
         if (shapes != null) shapes.dispose();
         if (hud != null) hud.stage.dispose();
         if (pauseStage != null) pauseStage.dispose();
@@ -481,5 +579,27 @@ public class GameScreen implements Screen {
         if (texCollectible != null) texCollectible.dispose();
         if (texDoorClosed != null) texDoorClosed.dispose();
         if (texDoorOpen   != null) texDoorOpen.dispose();
+    }
+
+    private void updateVolumes() {
+        AudioManager.setMusicVolume(muteMusic ? 0f : 1f);
+        AudioManager.setSfxVolume(muteSfx ? 0f : 1f);
+        if (game.bgm != null) game.bgm.setVolume(muteMusic ? 0f : 1f);
+    }
+
+    private void setMuteMusic(boolean value) {
+        muteMusic = value;
+        updateVolumes();
+    }
+
+    private void setMuteSfx(boolean value) {
+        muteSfx = value;
+        updateVolumes();
+    }
+
+    private void setMuteAll(boolean value) {
+        muteMusic = value;
+        muteSfx = value;
+        updateVolumes();
     }
 }

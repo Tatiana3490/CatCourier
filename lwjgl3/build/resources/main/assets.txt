@@ -8,6 +8,7 @@ fonts/NotoSans-Regular.ttf
 libgdx.png
 music/bgm.ogg
 player.png
+scores.json
 sfx/collect.wav
 sfx/hit.wav
 sfx/jump.wav
