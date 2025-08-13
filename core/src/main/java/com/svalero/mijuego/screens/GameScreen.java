@@ -30,71 +30,67 @@ import com.svalero.mijuego.util.Constants;
 import java.util.*;
 import java.util.List;
 
-/*Pantalla principal del juego.*/
+/** Pantalla principal del juego. */
 public class GameScreen implements Screen {
 
     private final MiJuego game;
     private final int levelNumber;
 
-    // --- Mundo y cámara (vista en unidades de juego, no en píxeles) ---
+    // Mundo/cámara
     private OrthographicCamera worldCam;
     private ExtendViewport worldViewport;
     private ShapeRenderer shapes;
 
-    // --- Entidades que viven en el mundo ---
+    // Entidades
     private Player player;
     private Level level;
-    private final List<EnemyWalker> enemiesWalk = new ArrayList<>();
-    private final List<EnemyFlyer>  enemiesFly  = new ArrayList<>();
-    private final List<Collectible> items       = new ArrayList<>();
-    private final List<AllyHealer>  allies      = new ArrayList<>();
+    private final List<EnemyWalker>    enemiesWalk  = new ArrayList<>();
+    private final List<EnemyFlyer>     enemiesFly   = new ArrayList<>();
+    private final List<EnemyJumper>    enemiesJump  = new ArrayList<>();
+    private final List<Collectible>    items        = new ArrayList<>();
+    private final List<AllyHealer>     alliesHeal   = new ArrayList<>();
+    private final List<AllyScoreBonus> alliesBonus  = new ArrayList<>();
+    private final List<AllyShield>     alliesShield = new ArrayList<>();
 
-    // --- HUD (marcadores y textos superpuestos) ---
+    // HUD
     private Hud hud;
 
-    // --- Objetivo del nivel (para abrir la salida) ---
+    // Objetivo del nivel
     private int requiredPackages;
     private int collectedPackages;
 
-    // --- Pausa / UI de pausa ---
+    // Pausa / UI
     private boolean paused = false;
     private Stage pauseStage;
     private Skin  pauseSkin;
 
-    // --- Sonidos puntuales (efectos) ---
+    // Sonidos
     private Sound sJump, sCollect, sHit;
-    private float hitCooldown = 0f; // evita reproducir "hit" muchas veces por segundo
+    private float hitCooldown = 0f;
 
-    // --- Animación del jugador con spritesheet ---
-    private Texture playerSheet;                       // imagen grande con varias celdas
-    private TextureRegion[][] playerFrames;           // celdas separadas
-    private TextureRegion currentFrame;               // frame a dibujar ahora
+    // Animación jugador
+    private Texture playerSheet;
+    private TextureRegion[][] playerFrames;
+    private TextureRegion currentFrame;
     private com.badlogic.gdx.graphics.g2d.Animation<TextureRegion> animIdle, animWalk, animJump;
-    private float stateTime = 0f;                     // tiempo acumulado para animaciones
-    private boolean facingRight = true;               // hacia dónde mira
-    private boolean lastOnGround = true;              // para detectar inicio del salto
+    private float  stateTime = 0f;
+    private boolean facingRight = true;
+    private boolean lastOnGround = true;
 
-    // --- Texturas (PNG) para NPCs e ítems (no animados) ---
-    private Texture texEnemyWalker;
-    private Texture texEnemyFlyer;
-    private Texture texAllyHealer;
+    // Texturas NPCs / ítems
+    private Texture texEnemyWalker, texEnemyFlyer, texEnemyJumper;
+    private Texture texAllyHealer, texAllyBonus, texAllyShield;
     private Texture texCollectible;
 
-    // --- Texturas de puerta (cerrada/abierta) ---
-    private Texture texDoorClosed;
-    private Texture texDoorOpen;
-
-    // --- Escala visual de la puerta y ajuste contra el suelo ---
+    // Puerta
+    private Texture texDoorClosed, texDoorOpen;
     private static final float DOOR_DRAW_SCALE_X = 1.8f;
     private static final float DOOR_DRAW_SCALE_Y = 1.8f;
     private static final float DOOR_FLOOR_EPS    = 1.0f;
 
-    // --- Mute global desde el menú de pausa ---
-    private boolean muted = false;
-    private float prevMusicVol = 1f;
-    private float prevSfxVol   = 1f;
-    private boolean muteMusic  = false;
-    private boolean muteSfx    = false;
+    // Mute
+    private boolean muteMusic = false;
+    private boolean muteSfx   = false;
 
     public GameScreen(MiJuego game, int levelNumber){
         this.game = game;
@@ -103,23 +99,24 @@ public class GameScreen implements Screen {
 
     @Override
     public void show() {
-        // 1) Cámara y viewport: 16x9 unidades de mundo visibles
+        // Cámara/viewport
         worldCam = new OrthographicCamera();
         worldViewport = new ExtendViewport(16f, 9f, worldCam);
         shapes = new ShapeRenderer();
 
-        // 2) Cargar el nivel y crear al jugador
+        // Nivel y jugador
         level = Level.create(levelNumber);
         player = new Player(2f, 2f);
 
-        // 3) Spawns por nivel (enemigos, items, aliados y paquetes requeridos)
+        // Spawns por nivel
         switch (levelNumber) {
             case 1:
                 enemiesWalk.add(new EnemyWalker(6f, 1f, 6f, 10f));
                 enemiesFly.add(new EnemyFlyer(12f, 3.0f));
                 items.add(new Collectible(10.5f, 4.7f));
                 items.add(new Collectible(16.0f, 5.9f));
-                allies.add(new AllyHealer(8.5f, 1f));
+                alliesHeal.add(new AllyHealer(8.5f, 1f));
+                alliesShield.add(new AllyShield(13.2f, 1f, 6f)); // 6 s de escudo
                 requiredPackages = 2;
                 break;
 
@@ -131,7 +128,8 @@ public class GameScreen implements Screen {
                 items.add(new Collectible(11.2f, 4.5f));
                 items.add(new Collectible(17.0f, 6.3f));
                 items.add(new Collectible(22.2f, 3.9f));
-                allies.add(new AllyHealer(21.5f, 1f));
+                alliesHeal.add(new AllyHealer(21.5f, 1f));
+                alliesBonus.add(new AllyScoreBonus(25.0f, 1f, 150));
                 requiredPackages = 3;
                 break;
 
@@ -140,41 +138,39 @@ public class GameScreen implements Screen {
                 enemiesWalk.add(new EnemyWalker(18f, 1f, 18f, 23f));
                 enemiesFly.add(new EnemyFlyer(13f, 3.2f));
                 enemiesFly.add(new EnemyFlyer(25f, 4.0f));
+                enemiesJump.add(new EnemyJumper(13.0f, 1.2f));
                 items.add(new Collectible(6.5f, 2.7f));
                 items.add(new Collectible(12.2f, 3.2f));
                 items.add(new Collectible(19.0f, 4.1f));
-                allies.add(new AllyHealer(22.5f, 1f));
+                alliesHeal.add(new AllyHealer(22.5f, 1f));
+                alliesBonus.add(new AllyScoreBonus(27.2f, 3.6f, 150));
+                alliesShield.add(new AllyShield(9.5f, 1f, 6f));
                 requiredPackages = 3;
                 break;
 
             case 4:
-                // Enemigos
                 enemiesWalk.add(new EnemyWalker(3.5f, 1f, 3.5f, 9f));
                 enemiesWalk.add(new EnemyWalker(21f, 1f, 21f, 27f));
                 enemiesWalk.add(new EnemyWalker(33f, 1f, 33f, 38f));
                 enemiesFly.add(new EnemyFlyer(16f, 4.0f));
                 enemiesFly.add(new EnemyFlyer(28f, 3.6f));
+                enemiesJump.add(new EnemyJumper(24.0f, 1.2f));
 
-                // === Cajas ENCIMA de las plataformas del Level 4 ===
-                // Plataformas Level 4 (de tu Level.java):
-                // (5, 2.2, 3, 0.6)   -> top = 2.8   -> centro X = 6.5
-                // (15, 2.8, 3, 0.6)  -> top = 3.4   -> centro X = 16.5
-                // (23, 3.2, 3, 0.6)  -> top = 3.8   -> centro X = 24.5   (AJUSTADA)
-                // (34, 2.8, 3, 0.6)  -> top = 3.4   -> centro X = 35.5
-                final float EPS = 0.05f; // para que no se “clave” visualmente
-
+                final float EPS = 0.05f;
                 items.add(new Collectible( 6.5f, 2.8f + EPS));
                 items.add(new Collectible(16.5f, 3.4f + EPS));
-                items.add(new Collectible(24.5f, 3.8f + EPS)); // <- esta era la conflictiva
+                items.add(new Collectible(24.5f, 3.8f + EPS));
                 items.add(new Collectible(35.5f, 3.4f + EPS));
 
-                allies.add(new AllyHealer(31f, 1f));
+                alliesHeal.add(new AllyHealer(31f, 1f));
+                alliesShield.add(new AllyShield(26.0f, 1f, 6f));
+                alliesBonus.add(new AllyScoreBonus(36.0f, 1f, 200));
                 requiredPackages = 4;
                 break;
         }
         collectedPackages = 0;
 
-        // 4) Animaciones del jugador (si falta player.png, dibujaremos un rectángulo)
+        // Animación jugador (spritesheet opcional)
         if (Gdx.files.internal("player.png").exists()) {
             playerSheet = new Texture("player.png");
             int rows = 3, cols = 6;
@@ -192,7 +188,7 @@ public class GameScreen implements Screen {
             animJump.setPlayMode(com.badlogic.gdx.graphics.g2d.Animation.PlayMode.NORMAL);
         }
 
-        // 5) Sonidos (cargamos solo si existen)
+        // SFX (defensivo)
         try {
             if (Gdx.files.internal("sfx/jump.wav").exists())
                 sJump = Gdx.audio.newSound(Gdx.files.internal("sfx/jump.wav"));
@@ -204,27 +200,28 @@ public class GameScreen implements Screen {
             Gdx.app.error("SFX", "Error cargando SFX: " + e.getMessage(), e);
         }
 
-        // 6) Sprites PNG (fallback geométrico si faltan)
+        // Texturas PNG (opcionales)
         if (Gdx.files.internal("enemy_walker.png").exists()) texEnemyWalker = new Texture("enemy_walker.png");
         if (Gdx.files.internal("enemy_flyer.png").exists())  texEnemyFlyer  = new Texture("enemy_flyer.png");
+        if (Gdx.files.internal("enemy_jumper.png").exists()) texEnemyJumper = new Texture("enemy_jumper.png");
         if (Gdx.files.internal("ally_healer.png").exists())  texAllyHealer  = new Texture("ally_healer.png");
+        if (Gdx.files.internal("ally_bonus.png").exists())   texAllyBonus   = new Texture("ally_bonus.png");
+        if (Gdx.files.internal("ally_shield.png").exists())  texAllyShield  = new Texture("ally_shield.png");
         if (Gdx.files.internal("collectible.png").exists())  texCollectible = new Texture("collectible.png");
+        if (Gdx.files.internal("door_closed.png").exists())  texDoorClosed  = new Texture("door_closed.png");
+        if (Gdx.files.internal("door_open.png").exists())    texDoorOpen    = new Texture("door_open.png");
 
-        // Puerta (cerrada/abierta)
-        if (Gdx.files.internal("door_closed.png").exists()) texDoorClosed = new Texture("door_closed.png");
-        if (Gdx.files.internal("door_open.png").exists())   texDoorOpen   = new Texture("door_open.png");
-
-        // 7) HUD
+        // HUD
         hud = new Hud(game.batch);
         hud.setLevel(levelNumber);
         hud.setGoal(collectedPackages, requiredPackages);
         Gdx.input.setInputProcessor(hud.stage);
 
-        // 8) Ventana de pausa
+        // UI Pausa
         setupPauseUI();
     }
 
-    /** Construye la ventana de pausa con controles de sonido y navegación. */
+    /** Ventana de pausa con mutear música/efectos + navegación. */
     private void setupPauseUI(){
         pauseSkin = UiStyles.makeSkin();
         pauseStage = new Stage(new FitViewport(Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT), game.batch);
@@ -235,58 +232,38 @@ public class GameScreen implements Screen {
         pauseStage.addActor(panel);
 
         Label title = new Label("PAUSA", pauseSkin, "title");
-
-        // CheckBoxes de sonido
-        CheckBox cbMuteAll   = new CheckBox(" Silencio total", pauseSkin);
         CheckBox cbMuteMusic = new CheckBox(" Silenciar música", pauseSkin);
         CheckBox cbMuteSfx   = new CheckBox(" Silenciar efectos", pauseSkin);
-
-        cbMuteAll.setChecked(muteMusic && muteSfx);
         cbMuteMusic.setChecked(muteMusic);
         cbMuteSfx.setChecked(muteSfx);
 
-        // Botones
         TextButton btnResume = new TextButton("Continuar", pauseSkin);
         TextButton btnMenu   = new TextButton("Menú principal", pauseSkin);
         TextButton btnExit   = new TextButton("Salir del juego", pauseSkin);
 
-        // Layout
         panel.add(title).padBottom(24).row();
-        panel.add(cbMuteAll).left().padBottom(10).row();
         panel.add(cbMuteMusic).left().padBottom(10).row();
         panel.add(cbMuteSfx).left().padBottom(18).row();
         panel.add(btnResume).width(260).height(52).pad(6).row();
         panel.add(btnMenu).width(260).height(52).pad(6).row();
         panel.add(btnExit).width(260).height(52).padTop(16).row();
 
-        // Listeners de sonido
-        cbMuteAll.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ChangeListener() {
-            @Override public void changed(ChangeEvent event, Actor actor) {
-                setMuteAll(cbMuteAll.isChecked());
-                cbMuteMusic.setChecked(muteMusic);
-                cbMuteSfx.setChecked(muteSfx);
-            }
-        });
         cbMuteMusic.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ChangeListener() {
             @Override public void changed(ChangeEvent event, Actor actor) {
                 setMuteMusic(cbMuteMusic.isChecked());
-                cbMuteAll.setChecked(muteMusic && muteSfx);
             }
         });
         cbMuteSfx.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ChangeListener() {
             @Override public void changed(ChangeEvent event, Actor actor) {
                 setMuteSfx(cbMuteSfx.isChecked());
-                cbMuteAll.setChecked(muteMusic && muteSfx);
             }
         });
 
-        // Botones de control
         btnResume.addListener(new ClickListener(){
             @Override public void clicked(InputEvent event, float x, float y) {
                 paused = false;
                 Gdx.input.setInputProcessor(hud.stage);
-                if (!muteMusic && game.bgm != null) game.bgm.play();
-                else if (game.bgm != null) game.bgm.pause();
+                if (!muteMusic && game.bgm != null) game.bgm.play(); else if (game.bgm != null) game.bgm.pause();
             }
         });
         btnMenu.addListener(new ClickListener(){
@@ -302,7 +279,6 @@ public class GameScreen implements Screen {
         });
     }
 
-    /** Cambia pausa y envía el input al stage correcto. */
     private void togglePause(){
         paused = !paused;
         if (paused) {
@@ -310,34 +286,18 @@ public class GameScreen implements Screen {
             if (game.bgm != null) game.bgm.pause();
         } else {
             Gdx.input.setInputProcessor(hud.stage);
-            if (game.bgm != null) game.bgm.play();
-        }
-    }
-
-    /** Activa/desactiva silencio total (música + efectos). */
-    private void setMuted(boolean value) {
-        muted = value;
-        if (muted) {
-            prevMusicVol = AudioManager.getMusicVolume();
-            prevSfxVol   = AudioManager.getSfxVolume();
-            AudioManager.setMusicVolume(0f);
-            AudioManager.setSfxVolume(0f);
-            if (game.bgm != null) game.bgm.setVolume(0f);
-        } else {
-            AudioManager.setMusicVolume(prevMusicVol);
-            AudioManager.setSfxVolume(prevSfxVol);
-            if (game.bgm != null) game.bgm.setVolume(prevMusicVol);
+            if (game.bgm != null && !muteMusic) game.bgm.play();
         }
     }
 
     @Override
     public void render(float delta) {
-        // Tecla de pausa (P o ESC)
+        // Pausa
         if (Gdx.input.isKeyJustPressed(Input.Keys.P) || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             togglePause();
         }
 
-        // Teclas test SFX
+        // Testing SFX (opcional)
         if (Gdx.input.isKeyJustPressed(Input.Keys.J) && sJump != null)    AudioManager.play(sJump);
         if (Gdx.input.isKeyJustPressed(Input.Keys.C) && sCollect != null) AudioManager.play(sCollect);
         if (Gdx.input.isKeyJustPressed(Input.Keys.H) && sHit != null)     AudioManager.play(sHit);
@@ -352,42 +312,73 @@ public class GameScreen implements Screen {
                 return;
             }
 
-            // Cooldown hit
+            // Cooldown del hit
             if (hitCooldown > 0f) hitCooldown -= delta;
 
-            // Sonido al iniciar salto
-            if (lastOnGround && !player.onGround && player.vel.y > 0f && sJump != null) {
-                AudioManager.play(sJump);
-            }
+            // Sonido inicio de salto
+            if (lastOnGround && !player.onGround && player.vel.y > 0f && sJump != null) AudioManager.play(sJump);
             lastOnGround = player.onGround;
 
-            // Mover enemigos
+            // Enemigos se mueven
             for (EnemyWalker e : enemiesWalk) e.update(delta);
             for (EnemyFlyer  f : enemiesFly)  f.update(delta);
+            for (EnemyJumper j : enemiesJump) j.update(delta);
 
-            // Colisiones con enemigos
-            for (EnemyWalker e : enemiesWalk) {
-                if (player.getBounds().overlaps(e.getBounds())) {
-                    int prev = player.energy;
-                    player.energy = Math.max(0, player.energy - 10);
-                    if (player.energy < prev && hitCooldown <= 0f && sHit != null) {
-                        AudioManager.play(sHit);
-                        hitCooldown = 0.4f;
+            // Colisiones con enemigos (ignora daño si hay escudo)
+            if (!player.isShieldActive()) {
+                for (EnemyWalker e : enemiesWalk) {
+                    if (player.getBounds().overlaps(e.getBounds())) {
+                        int prev = player.energy;
+                        player.energy = Math.max(0, player.energy - 10);
+                        if (player.energy < prev && hitCooldown <= 0f && sHit != null) {
+                            AudioManager.play(sHit); hitCooldown = 0.4f;
+                        }
+                    }
+                }
+                for (EnemyFlyer f : enemiesFly) {
+                    if (player.getBounds().overlaps(f.getBounds())) {
+                        int prev = player.energy;
+                        player.energy = Math.max(0, player.energy - 10);
+                        if (player.energy < prev && hitCooldown <= 0f && sHit != null) {
+                            AudioManager.play(sHit); hitCooldown = 0.4f;
+                        }
+                    }
+                }
+                for (EnemyJumper j : enemiesJump) {
+                    if (player.getBounds().overlaps(j.getBounds())) {
+                        int prev = player.energy;
+                        player.energy = Math.max(0, player.energy - 10);
+                        if (player.energy < prev && hitCooldown <= 0f && sHit != null) {
+                            AudioManager.play(sHit); hitCooldown = 0.4f;
+                        }
                     }
                 }
             }
-            for (EnemyFlyer f : enemiesFly)  {
-                if (player.getBounds().overlaps(f.getBounds())) {
-                    int prev = player.energy;
-                    player.energy = Math.max(0, player.energy - 10);
-                    if (player.energy < prev && hitCooldown <= 0f && sHit != null) {
-                        AudioManager.play(sHit);
-                        hitCooldown = 0.4f;
-                    }
+
+            // Aliados: bonus y curación
+            for (AllyScoreBonus b : alliesBonus) {
+                if (!b.isUsed() && player.getBounds().overlaps(b.getBounds())) {
+                    b.markUsed();
+                    player.score += b.bonus;
+                    if (sCollect != null) AudioManager.play(sCollect);
+                }
+            }
+            for (AllyHealer a : alliesHeal){
+                if (!a.isUsed() && player.getBounds().overlaps(a.getBounds())){
+                    player.energy = Math.min(100, player.energy + a.healAmount);
+                    a.markUsed();
+                    if (sCollect != null) AudioManager.play(sCollect);
+                }
+            }
+            for (AllyShield s : alliesShield) {
+                if (!s.isUsed() && player.getBounds().overlaps(s.getBounds())) {
+                    s.markUsed();
+                    player.activateShield(s.duration);
+                    if (sCollect != null) AudioManager.play(sCollect);
                 }
             }
 
-            // Recoger ítems
+            // Recoger paquetes
             for (Iterator<Collectible> it = items.iterator(); it.hasNext();) {
                 Collectible c = it.next();
                 if (!c.isCollected() && player.getBounds().overlaps(c.getBounds())){
@@ -399,32 +390,20 @@ public class GameScreen implements Screen {
             }
             items.removeIf(Collectible::isCollected);
 
-            // Aliado (curación una vez)
-            for (AllyHealer a : allies){
-                if (!a.isUsed() && player.getBounds().overlaps(a.getBounds())){
-                    player.energy = Math.min(100, player.energy + a.healAmount);
-                    a.markUsed();
-                    if (sCollect != null) AudioManager.play(sCollect);
-                }
-            }
-
-            // Cámara sigue al jugador (con límites)
+            // Cámara
             worldCam.position.set(player.pos.x + Constants.PLAYER_W/2f, Math.max(player.pos.y, 4.5f), 0);
             float halfW = worldViewport.getWorldWidth()/2f;
             if (worldCam.position.x < halfW) worldCam.position.x = halfW;
             if (worldCam.position.x > level.widthUnits - halfW) worldCam.position.x = level.widthUnits - halfW;
             worldCam.update();
 
-            // ¿Puede salir?
+            // Cambiar de nivel
             boolean canExit = collectedPackages >= requiredPackages;
             if (canExit && player.getBounds().overlaps(level.exit)){
                 int nextLevel = levelNumber + 1;
-                int MAX_LEVEL = 4; // niveles 1..4
-                if (nextLevel <= MAX_LEVEL) {
-                    game.setScreen(new GameScreen(game, nextLevel));
-                } else {
-                    game.setScreen(new GameOverScreen(game, player.score));
-                }
+                int MAX_LEVEL = 4;
+                if (nextLevel <= MAX_LEVEL) game.setScreen(new GameScreen(game, nextLevel));
+                else                         game.setScreen(new GameOverScreen(game, player.score));
                 return;
             }
 
@@ -437,27 +416,25 @@ public class GameScreen implements Screen {
                 else if (moving)   currentFrame = animWalk.getKeyFrame(stateTime);
                 else               currentFrame = animIdle.getKeyFrame(stateTime);
                 if (moving) facingRight = player.vel.x >= 0f;
-                if (currentFrame != null && currentFrame.isFlipX() == !facingRight) {
-                    currentFrame.flip(true, false);
-                }
+                if (currentFrame != null && currentFrame.isFlipX() == !facingRight) currentFrame.flip(true, false);
             }
         }
 
-        // ===== DRAW / RENDER =====
+        // ===== DRAW =====
         Gdx.gl.glClearColor(0.12f,0.14f,0.18f,1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         boolean canExitNow = collectedPackages >= requiredPackages;
         Rectangle exit = level.exit;
 
-        // 1) Geometría básica
+        // 1) Geometría
         shapes.setProjectionMatrix(worldCam.combined);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
 
         shapes.setColor(0.30f, 0.35f, 0.42f, 1f);
         for (Rectangle r : level.solids) shapes.rect(r.x, r.y, r.width, r.height);
 
-        // Fallback de puerta (si faltan PNGs)
+        // Fallback puerta
         if ((texDoorOpen == null && texDoorClosed == null) ||
             (canExitNow && texDoorOpen == null) ||
             (!canExitNow && texDoorClosed == null)) {
@@ -465,68 +442,50 @@ public class GameScreen implements Screen {
             shapes.rect(exit.x, exit.y, exit.width, exit.height);
         }
 
-        // Placeholder del jugador si no hay spritesheet
+        // Placeholder del player
         if (playerSheet == null) {
             shapes.setColor(0.9f, 0.9f, 0.1f, 1f);
             shapes.rect(player.pos.x, player.pos.y, Constants.PLAYER_W, Constants.PLAYER_H);
         }
         shapes.end();
 
-        // 2) Sprites PNG
+        // 2) Sprites
         game.batch.setProjectionMatrix(worldCam.combined);
         game.batch.begin();
 
-        // Puerta alineada al suelo
+        // Puerta dibujada al ras del suelo
         if (texDoorOpen != null || texDoorClosed != null) {
             float drawW = exit.width  * DOOR_DRAW_SCALE_X;
             float drawH = exit.height * DOOR_DRAW_SCALE_Y;
             float drawX = exit.x + (exit.width - drawW) / 2f;
             float drawY = exit.y - DOOR_FLOOR_EPS;
-
-            if (canExitNow && texDoorOpen != null)
-                game.batch.draw(texDoorOpen, drawX, drawY, drawW, drawH);
-            else if (!canExitNow && texDoorClosed != null)
-                game.batch.draw(texDoorClosed, drawX, drawY, drawW, drawH);
+            if (canExitNow && texDoorOpen != null)  game.batch.draw(texDoorOpen,  drawX, drawY, drawW, drawH);
+            else if (!canExitNow && texDoorClosed != null) game.batch.draw(texDoorClosed, drawX, drawY, drawW, drawH);
         }
 
         // Enemigos
-        if (texEnemyWalker != null) {
-            for (EnemyWalker e : enemiesWalk) {
-                Rectangle b = e.getBounds();
-                game.batch.draw(texEnemyWalker, b.x, b.y, b.width, b.height);
-            }
-        }
-        if (texEnemyFlyer != null) {
-            for (EnemyFlyer f : enemiesFly) {
-                Rectangle b = f.getBounds();
-                game.batch.draw(texEnemyFlyer, b.x, b.y, b.width, b.height);
-            }
-        }
+        if (texEnemyWalker != null)
+            for (EnemyWalker e : enemiesWalk) { Rectangle b = e.getBounds(); game.batch.draw(texEnemyWalker, b.x, b.y, b.width, b.height); }
+        if (texEnemyFlyer != null)
+            for (EnemyFlyer f : enemiesFly)   { Rectangle b = f.getBounds(); game.batch.draw(texEnemyFlyer,  b.x, b.y, b.width, b.height); }
+        if (texEnemyJumper != null)
+            for (EnemyJumper j : enemiesJump) { Rectangle b = j.getBounds(); game.batch.draw(texEnemyJumper, b.x, b.y, b.width, b.height); }
 
-        // Aliado (si sigue disponible)
-        if (texAllyHealer != null) {
-            for (AllyHealer a : allies) {
-                if (!a.isUsed()) {
-                    Rectangle b = a.getBounds();
-                    game.batch.draw(texAllyHealer, b.x, b.y, b.width, b.height);
-                }
-            }
-        }
+        // Aliados
+        if (texAllyHealer != null)
+            for (AllyHealer a : alliesHeal)   if (!a.isUsed()) { Rectangle b = a.getBounds(); game.batch.draw(texAllyHealer, b.x, b.y, b.width, b.height); }
+        if (texAllyBonus != null)
+            for (AllyScoreBonus a : alliesBonus) if (!a.isUsed()) { Rectangle b = a.getBounds(); game.batch.draw(texAllyBonus, b.x, b.y, b.width, b.height); }
+        if (texAllyShield != null)
+            for (AllyShield a : alliesShield) if (!a.isUsed()) { Rectangle b = a.getBounds(); game.batch.draw(texAllyShield, b.x, b.y, b.width, b.height); }
 
         // Ítems
-        if (texCollectible != null) {
-            for (Collectible c : items) {
-                if (!c.isCollected()) {
-                    Rectangle b = c.getBounds();
-                    game.batch.draw(texCollectible, b.x, b.y, b.width, b.height);
-                }
-            }
-        }
+        if (texCollectible != null)
+            for (Collectible c : items) if (!c.isCollected()) { Rectangle b = c.getBounds(); game.batch.draw(texCollectible, b.x, b.y, b.width, b.height); }
 
         // Jugador animado
-        if (playerSheet != null && currentFrame != null) {
+        if (playerSheet != null && currentFrame != null)
             game.batch.draw(currentFrame, player.pos.x, player.pos.y, Constants.PLAYER_W, Constants.PLAYER_H);
-        }
 
         game.batch.end();
 
@@ -575,31 +534,21 @@ public class GameScreen implements Screen {
         if (playerSheet != null) playerSheet.dispose();
         if (texEnemyWalker != null) texEnemyWalker.dispose();
         if (texEnemyFlyer  != null) texEnemyFlyer.dispose();
+        if (texEnemyJumper != null) texEnemyJumper.dispose();
         if (texAllyHealer  != null) texAllyHealer.dispose();
+        if (texAllyBonus   != null) texAllyBonus.dispose();
+        if (texAllyShield  != null) texAllyShield.dispose();
         if (texCollectible != null) texCollectible.dispose();
-        if (texDoorClosed != null) texDoorClosed.dispose();
-        if (texDoorOpen   != null) texDoorOpen.dispose();
+        if (texDoorClosed  != null) texDoorClosed.dispose();
+        if (texDoorOpen    != null) texDoorOpen.dispose();
     }
 
+    // Volúmenes
     private void updateVolumes() {
         AudioManager.setMusicVolume(muteMusic ? 0f : 1f);
         AudioManager.setSfxVolume(muteSfx ? 0f : 1f);
         if (game.bgm != null) game.bgm.setVolume(muteMusic ? 0f : 1f);
     }
-
-    private void setMuteMusic(boolean value) {
-        muteMusic = value;
-        updateVolumes();
-    }
-
-    private void setMuteSfx(boolean value) {
-        muteSfx = value;
-        updateVolumes();
-    }
-
-    private void setMuteAll(boolean value) {
-        muteMusic = value;
-        muteSfx = value;
-        updateVolumes();
-    }
+    private void setMuteMusic(boolean value) { muteMusic = value; updateVolumes(); }
+    private void setMuteSfx(boolean value)   { muteSfx   = value; updateVolumes(); }
 }

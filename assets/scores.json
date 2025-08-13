@@ -1,6 +1,12 @@
 [
 {
 	class: com.svalero.mijuego.scores.ScoreEntry
+	name: Terminé!
+	score: 240
+	date: 2025-08-13 02:03
+}
+{
+	class: com.svalero.mijuego.scores.ScoreEntry
 	name: Tatiana3
 	score: 40
 	date: 2025-08-12 22:20
@@ -28,5 +34,11 @@
 	name: Tatiana3
 	score: 30
 	date: 2025-08-12 14:22
+}
+{
+	class: com.svalero.mijuego.scores.ScoreEntry
+	name: me caí
+	score: 20
+	date: 2025-08-13 02:02
 }
 ]

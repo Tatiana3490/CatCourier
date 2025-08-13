@@ -1,8 +1,11 @@
+ally_bonus.png
 ally_healer.png
+ally_shield.png
 collectible.png
 door_closed.png
 door_open.png
 enemy_flyer.png
+enemy_jumper.png
 enemy_walker.png
 fonts/NotoSans-Regular.ttf
 libgdx.png
