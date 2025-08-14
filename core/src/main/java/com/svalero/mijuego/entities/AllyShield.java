@@ -2,7 +2,7 @@ package com.svalero.mijuego.entities;
 
 import com.badlogic.gdx.math.Rectangle;
 
-/** Aliado que otorga invulnerabilidad temporal contra enemigos. */
+//Aliado que otorga invulnerabilidad temporal contra enemigos.
 public class AllyShield {
     private final float x, y;
     private final float w = 0.9f, h = 1.0f;

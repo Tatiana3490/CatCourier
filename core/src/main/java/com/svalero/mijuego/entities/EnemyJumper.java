@@ -27,7 +27,6 @@ public class EnemyJumper {
 
     public void update(float delta){
         t += delta * speed;
-        // Movimiento vertical senoidal (0..1..0) usando |sin|
         float dy = (float)Math.abs(Math.sin(t)) * amp;
         y = baseY + dy;
         updateBounds();

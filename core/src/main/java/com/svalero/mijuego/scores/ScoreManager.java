@@ -14,7 +14,7 @@ public class ScoreManager {
     private static final String FILE_NAME = "scores.json"; // se guarda en Gdx.files.local()
     private static final Json json = new Json();
 
-    /** Devuelve TODAS las puntuaciones guardadas (puede estar vacío). */
+    //Devuelve TODAS las puntuaciones guardadas (puede estar vacío).
     public static Array<ScoreEntry> loadAll() {
         FileHandle fh = Gdx.files.local(FILE_NAME);
         if (!fh.exists()) return new Array<>();
@@ -40,13 +40,12 @@ public class ScoreManager {
     }
 
 
-    /** Añade una puntuación con fecha legible (String) y guarda. */
+    //Añade una puntuación con fecha legible (String) y guarda.
     public static void addScore(String name, int score) {
         if (name == null || name.trim().isEmpty()) name = "Jugador";
         name = name.trim();
 
-        // Fecha legible (String), formato estable y corto
-        String date = new SimpleDateFormat("yyyy-MM-dd HH:mm").format(new Date());
+        String date = new SimpleDateFormat("yyyy-MM-dd HH:mm").format(new Date()); // Fecha legible (String), formato estable y corto
 
         Array<ScoreEntry> all = loadAll();
         all.add(new ScoreEntry(name, score, date));
@@ -58,7 +57,7 @@ public class ScoreManager {
             }
         });
 
-        // (opcional) recortar a 100 como máximo para no crecer infinito
+        // recortar a 100 como máximo para no crecer infinito
         if (all.size > 100) {
             Array<ScoreEntry> trimmed = new Array<>();
             for (int i = 0; i < 100; i++) trimmed.add(all.get(i));
@@ -68,7 +67,7 @@ public class ScoreManager {
         saveAll(all);
     }
 
-    /** Devuelve el Top-N (por defecto mostrarás N=10). */
+    //Devuelve el Top-N (por defecto se muestra N=10).
     public static List<ScoreEntry> getTop(int n) {
         Array<ScoreEntry> all = loadAll();
         all.sort(new Comparator<ScoreEntry>() {
@@ -81,7 +80,7 @@ public class ScoreManager {
         return top;
     }
 
-    /** Borra todas las puntuaciones (útil en desarrollo). */
+    //Borra todas las puntuaciones
     public static void clearAll() {
         Gdx.files.local(FILE_NAME).delete();
     }

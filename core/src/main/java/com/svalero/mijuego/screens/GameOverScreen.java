@@ -133,7 +133,7 @@ public class GameOverScreen implements Screen {
     // Helpers
     // =======================
 
-    /** Asegura un nombre válido: quita espacios extremos, recorta largo máximo y pone "Jugador" si queda vacío. */
+    //Asegura un nombre válido: quita espacios extremos, recorta largo máximo y pone "Jugador" si queda vacío.
     private String sanitizeName(String raw) {
         String s = raw == null ? "" : raw.trim();
         if (s.isEmpty()) s = "Jugador";
@@ -142,7 +142,7 @@ public class GameOverScreen implements Screen {
         return s;
     }
 
-    /** Crea un TextFieldStyle muy básico con fondos/cursores dibujados a color. */
+    // Crea un TextFieldStyle muy básico con fondos/cursores dibujados a color.
     private TextField.TextFieldStyle makeTextFieldStyle() {
         // Usamos la fuente por defecto que guardamos en el Skin
         BitmapFont font = skin.getFont("default-font");
@@ -166,9 +166,9 @@ public class GameOverScreen implements Screen {
         return style;
     }
 
-    /** Crea un NinePatchDrawable sólido del color indicado. padPx añade “relleno interno” (padding visual). */
+    //Crea un NinePatchDrawable sólido del color indicado. padPx añade “relleno interno” (padding visual).
     private NinePatchDrawable solidDrawable(int rgba8888, int padPx) {
-        // Mini lienzo 8x8 del color pedido
+        // Mini lienzo 8x8
         Pixmap pm = new Pixmap(8, 8, Pixmap.Format.RGBA8888);
         Color temp = new Color();
         Color.rgba8888ToColor(temp, rgba8888);

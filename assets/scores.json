@@ -1,6 +1,18 @@
 [
 {
 	class: com.svalero.mijuego.scores.ScoreEntry
+	name: Se puede llegar la f
+	score: 420
+	date: 2025-08-14 22:57
+}
+{
+	class: com.svalero.mijuego.scores.ScoreEntry
+	name: Tatiplof
+	score: 400
+	date: 2025-08-14 23:13
+}
+{
+	class: com.svalero.mijuego.scores.ScoreEntry
 	name: Tati4
 	score: 390
 	date: 2025-08-14 17:07
@@ -16,6 +28,18 @@
 	name: Tati6
 	score: 390
 	date: 2025-08-14 17:28
+}
+{
+	class: com.svalero.mijuego.scores.ScoreEntry
+	name: Tati7
+	score: 390
+	date: 2025-08-14 18:18
+}
+{
+	class: com.svalero.mijuego.scores.ScoreEntry
+	name: Tatikilled
+	score: 390
+	date: 2025-08-14 23:05
 }
 {
 	class: com.svalero.mijuego.scores.ScoreEntry

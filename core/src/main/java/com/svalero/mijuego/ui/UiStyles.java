@@ -22,13 +22,12 @@ public class UiStyles {
         Skin skin = new Skin();
 
         // === 1) Genera una BitmapFont desde TTF ===
-        // Asegúrate de tener assets/fonts/NotoSans-Regular.ttf
         FreeTypeFontGenerator gen = new FreeTypeFontGenerator(Gdx.files.internal("fonts/NotoSans-Regular.ttf"));
 
         // Fuente normal (UI)
         FreeTypeFontGenerator.FreeTypeFontParameter p = new FreeTypeFontGenerator.FreeTypeFontParameter();
         p.size = 18; // tamaño en píxeles
-        // Incluimos flechas y corchetes por si los usas en instrucciones
+
         p.characters = FreeTypeFontGenerator.DEFAULT_CHARS + "←→↑↓[]";
         BitmapFont font = gen.generateFont(p);
 
@@ -97,7 +96,7 @@ public class UiStyles {
         return skin;
     }
 
-    /** Drawable de color sólido con Pixmap (8x8) y NinePatch (bordes 2px). */
+    // Drawable de color sólido con Pixmap (8x8) y NinePatch (bordes 2px).
     private static Drawable colored(int rgba8888) {
         Pixmap pm = new Pixmap(8, 8, Pixmap.Format.RGBA8888);
         Color temp = new Color();

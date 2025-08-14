@@ -3,7 +3,7 @@ package com.svalero.mijuego.audio;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 
-/* Gestor sencillo de audio para controlar volumen global. */
+/* Gestor de audio para controlar volumen global. */
 public class AudioManager {
     private static Music bgm;
     private static float musicVolume = 0.5f; // 0..1

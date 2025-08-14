@@ -50,7 +50,7 @@ public class GameScreen implements Screen {
     private Player player;
     private Level level;
 
-    // Listas de NPCs/ítems (muy básico)
+    // Listas de NPCs/ítems
     private final List<EnemyWalker>    enemiesWalk  = new ArrayList<>();
     private final List<EnemyFlyer>     enemiesFly   = new ArrayList<>();
     private final List<EnemyJumper>    enemiesJump  = new ArrayList<>();
@@ -246,7 +246,7 @@ public class GameScreen implements Screen {
         setupPauseUI();
     }
 
-    /** Ventana de pausa con mute de música/efectos y navegación básica. */
+    // Ventana de pausa con mute de música/efectos y navegación básica.
     private void setupPauseUI(){
         pauseSkin = UiStyles.makeSkin();
         pauseStage = new Stage(new FitViewport(Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT), game.batch);
@@ -298,7 +298,7 @@ public class GameScreen implements Screen {
         });
     }
 
-    /** Alterno pausa y paso el input al stage que toca. */
+    // Alterno pausa y paso el input al stage que toca.
     private void togglePause(){
         paused = !paused;
         if (paused) {

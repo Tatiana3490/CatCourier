@@ -4,72 +4,46 @@ import com.badlogic.gdx.math.Rectangle;
 
 public class EnemyCheese {
 
-    // Posición del queso en el mundo
-    private float x, y;
 
-    // Radio de detección: si el jugador entra en esta distancia, se activa
-    private final float triggerRange;
+    private float x, y;// Posición del queso en el mundo
+    private final float triggerRange;// Radio de detección: si el jugador entra en esta distancia, se activa
+    private final boolean oneTime; // Indica si el queso solo se activa una vez
+    private boolean triggered = false; // Estado: true si ya se ha activado
+    private final float w = 0.8f, h = 0.8f; // Tamaño del queso en unidades del mundo
+    private final Rectangle bounds = new Rectangle(); // Rectángulo de colisión (puede usarse para dibujar o detectar choques)
 
-    // Indica si el queso solo se activa una vez
-    private final boolean oneTime;
-
-    // Estado: true si ya se ha activado
-    private boolean triggered = false;
-
-    // Tamaño del queso en unidades del mundo
-    private final float w = 0.8f, h = 0.8f;
-
-    // Rectángulo de colisión (puede usarse para dibujar o detectar choques)
-    private final Rectangle bounds = new Rectangle();
-
-    /**
-     * Constructor del enemigo queso explosivo
-     * @param x posición inicial en X
-     * @param y posición inicial en Y
-     * @param triggerRange radio de detección para activarse
-     * @param oneTime true si solo explota una vez, false si puede explotar varias veces
-     */
     public EnemyCheese(float x, float y, float triggerRange, boolean oneTime) {
-        this.x = x;
-        this.y = y;
-        this.triggerRange = triggerRange;
-        this.oneTime = oneTime;
+        this.x = x; //posición inicial en X
+        this.y = y; //posición inicial en Y
+        this.triggerRange = triggerRange; //radio de detección para activarse
+        this.oneTime = oneTime; //true si solo explota una vez, false si puede explotar varias veces
         updateBounds(); // Inicializa el rectángulo de colisión
     }
 
-    /**
-     * Comprueba si el jugador está lo suficientemente cerca para activar el queso
-     * @param playerX posición X del jugador
-     * @param playerY posición Y del jugador
-     * @return true si explota ahora (activa el efecto), false si no
-     */
-    public boolean checkTrigger(float playerX, float playerY) {
-        // Si ya explotó y es de un solo uso, no vuelve a activarse
-        if (triggered && oneTime) return false;
+    //Comprueba si el jugador está lo suficientemente cerca para activar el queso
 
+    public boolean checkTrigger(float playerX, float playerY) {
+        if (triggered && oneTime) return false; // Si ya explotó y es de un solo uso, no vuelve a activarse
         // Calcula la distancia al jugador (distancia² para evitar raíz cuadrada)
-        float dx = playerX - x;
-        float dy = playerY - y;
+        float dx = playerX - x; //posición X del jugador
+        float dy = playerY - y; //posición Y del jugador
 
         // Si la distancia² es menor o igual al rango², se activa
         if (dx * dx + dy * dy <= triggerRange * triggerRange) {
             triggered = true;
-            return true;
+            return true; //true si explota ahora (activa el efecto), false si no
         }
         return false;
     }
 
-    /**
-     * Actualiza la posición y tamaño del rectángulo de colisión
-     */
+    //Actualiza la posición y tamaño del rectángulo de colisión
+
     private void updateBounds() {
         bounds.set(x, y, w, h);
     }
 
-    /**
-     * Devuelve el rectángulo de colisión del queso
-     * @return Rectangle con posición y tamaño
-     */
+    //Devuelve el rectángulo de colisión del queso
+
     public Rectangle getBounds() {
         return bounds;
     }

@@ -44,7 +44,7 @@ public class MenuScreen implements Screen {
         Gdx.input.setInputProcessor(stage);
     }
 
-    /** Construye todos los widgets del menú */
+    //Construye todos los widgets del menú
     private void buildUI() {
         Table root = new Table(skin);
         root.setFillParent(true);

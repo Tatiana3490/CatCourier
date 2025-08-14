@@ -31,7 +31,7 @@ public class HighScoresScreen implements Screen {
         skin  = UiStyles.makeSkin();
         Gdx.input.setInputProcessor(stage);
 
-        Table root = new Table();        // ← sin skin para que no busque drawables por defecto
+        Table root = new Table();  // sin skin para que no busque drawables por defecto
         root.setFillParent(true);
         root.pad(24);
         stage.addActor(root);
@@ -49,8 +49,7 @@ public class HighScoresScreen implements Screen {
             } else if (skin.has("button", Drawable.class)) {
                 card.setBackground(skin.getDrawable("button"));
             }
-            // si tu UiStyles expone "bg" o similar, puedes añadir más elif aquí
-        } catch (Exception ignore) { /* sin fondo, y ya */ }
+        } catch (Exception ignore) { }
 
         root.add(card).width(900).height(520).center();
 

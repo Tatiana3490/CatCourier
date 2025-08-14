@@ -16,14 +16,10 @@ import com.svalero.mijuego.screens.MenuScreen;
  */
 public class MiJuego extends Game {
 
-    // Batch global para dibujado (HUD, sprites, etc.)
-    public SpriteBatch batch;
-
-    // Música de fondo global (opcional si existe el archivo)
-    public Music bgm;
+    public SpriteBatch batch; // Batch global para dibujado (HUD, sprites, etc.)
+    public Music bgm; // Música de fondo global
 
     // === Marcador global acumulado de toda la partida ===
-    // Lo irás sumando desde GameScreen (collectibles, bonus, etc.)
     public int totalScore = 0;
 
     @Override
@@ -36,8 +32,8 @@ public class MiJuego extends Game {
             bgm.setLooping(true);
             bgm.setVolume(0.5f);
             bgm.play();
-            // Registrar en tu AudioManager para que respete mute/volumen
-            AudioManager.registerMusic(bgm);
+
+            AudioManager.registerMusic(bgm); // Registrar en tu AudioManager para que respete mute/volumen
         }
 
         // Pantalla inicial del juego (menú principal)

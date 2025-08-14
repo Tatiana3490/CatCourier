@@ -18,15 +18,9 @@ import com.svalero.mijuego.util.Constants;
 
 public class SettingsScreen implements Screen {
     private final MiJuego game;
-
-    // Escenario donde “viven” los widgets (botones, labels, sliders, etc.)
-    private Stage stage;
-
-    // “Skin” con estilos (colores, fuentes, etc.) que nos da UiStyles
-    private Skin skin;
-
-    // Sonido de prueba para el botón “Probar efecto”
-    private Sound testSfx;
+    private Stage stage;// Escenario donde “viven” los widgets (botones, labels, sliders, etc.)
+    private Skin skin;// “Skin” con estilos (colores, fuentes, etc.) que nos da UiStyles
+    private Sound testSfx; // Sonido de prueba para el botón “Probar efecto”
 
     public SettingsScreen(MiJuego game){ this.game = game; }
 
@@ -51,7 +45,7 @@ public class SettingsScreen implements Screen {
         stage.addActor(root);
 
         // 4) Widgets
-        Label title  = new Label("Configuración", skin, "title");  // estilo de título
+        Label title  = new Label("Configuración", skin, "title");
         Label lMusic = new Label("Volumen Música", skin);
         Label lSfx   = new Label("Volumen Efectos", skin);
 

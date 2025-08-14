@@ -1,31 +1,22 @@
 package com.svalero.mijuego.entities;
 
 import com.badlogic.gdx.math.Rectangle;
+import lombok.Getter;
 
 public class EnemyMouse {
 
-    // Posición actual del ratón en el mundo
-    private float x, y;
+    private float x, y; // Posición actual del ratón en el mundo
+    private final float amplitude; // Amplitud del movimiento en zigzag (cuánto se desplaza a los lados)
+    private final float frequency;// Frecuencia del zigzag (qué tan rápido se mueve de lado a lado)
+    private float time = 0f;// Tiempo acumulado (sirve para calcular la posición en la onda seno)
+    private final float w = 0.5f, h = 0.5f; // Tamaño del ratón en unidades del mundo
 
-    // Amplitud del movimiento en zigzag (cuánto se desplaza a los lados)
-    private final float amplitude;
-
-    // Frecuencia del zigzag (qué tan rápido se mueve de lado a lado)
-    private final float frequency;
-
-    // Tiempo acumulado (sirve para calcular la posición en la onda seno)
-    private float time = 0f;
-
-    // Tamaño del ratón en unidades del mundo
-    private final float w = 0.5f, h = 0.5f;
-
-    // Rectángulo de colisión para detectar choques con el jugador
-    private final Rectangle bounds = new Rectangle();
+    //Devuelve el rectángulo de colisión del ratón
+    @Getter
+    private final Rectangle bounds = new Rectangle(); // Rectángulo de colisión para detectar choques con el jugador
 
     /**
      * Constructor del enemigo ratón
-     * @param x posición inicial en el eje X
-     * @param y posición inicial en el eje Y
      * @param amplitude amplitud del zigzag (desplazamiento lateral)
      * @param frequency frecuencia del zigzag (velocidad lateral)
      */
@@ -43,28 +34,15 @@ public class EnemyMouse {
      * @param delta tiempo transcurrido desde el último frame
      */
     public void update(float delta) {
-        // Avanzamos el tiempo en función de la frecuencia
-        time += delta * frequency;
-
-        // Movemos en X siguiendo una onda seno para lograr el zigzag
-        x += (float) Math.sin(time) * amplitude * delta;
-
-        // Actualizamos el rectángulo de colisión tras el movimiento
-        updateBounds();
+        time += delta * frequency;  // Avanzamos el tiempo en función de la frecuencia
+        x += (float) Math.sin(time) * amplitude * delta;  // Movemos en X siguiendo una onda seno para lograr el zigzag
+        updateBounds();// Actualizamos el rectángulo de colisión tras el movimiento
     }
 
-    /**
-     * Actualiza la posición y tamaño del rectángulo de colisión
-     */
+    //Actualiza la posición y tamaño del rectángulo de colisión
+
     private void updateBounds() {
         bounds.set(x, y, w, h);
     }
 
-    /**
-     * Devuelve el rectángulo de colisión del ratón
-     * @return Rectangle con posición y tamaño actuales
-     */
-    public Rectangle getBounds() {
-        return bounds;
-    }
 }

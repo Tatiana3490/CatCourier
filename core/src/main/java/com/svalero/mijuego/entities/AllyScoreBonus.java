@@ -2,7 +2,7 @@ package com.svalero.mijuego.entities;
 
 import com.badlogic.gdx.math.Rectangle;
 
-/** Aliado que otorga puntos una única vez al tocarlo. */
+// Aliado que otorga puntos una única vez al tocarlo.
 public class AllyScoreBonus {
     private final float x, y;
     private final float w = 0.9f, h = 1.0f;

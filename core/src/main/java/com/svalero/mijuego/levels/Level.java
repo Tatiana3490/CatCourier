@@ -15,18 +15,11 @@ import java.util.List;
  */
 public class Level {
 
-    /** Sólidos del nivel (suelos + plataformas) */
-    public final List<Rectangle> solids = new ArrayList<>();
+    public final List<Rectangle> solids = new ArrayList<>();  // Sólidos del nivel (suelos + plataformas)
+    public Rectangle exit; //Zona de salida (colisión para cambiar de nivel)
+    public float widthUnits = 28f;  //Ancho del nivel en unidades de mundo (para limitar cámara)
 
-    /** Zona de salida (colisión para cambiar de nivel) */
-    public Rectangle exit;
-
-    /** Ancho del nivel en unidades de mundo (para limitar cámara) */
-    public float widthUnits = 28f;
-
-    /**
-     * Crea el nivel pedido (1..4). Si llega un número fuera de rango, devuelve el 1.
-     */
+    //Crea el nivel pedido (1..4). Si llega un número fuera de rango, devuelve el 1.
     public static Level create(int number){
         Level L = new Level();
 
@@ -102,13 +95,7 @@ public class Level {
                 L.solids.add(new Rectangle(5f,   2.2f, 3f, 0.6f));
                 L.solids.add(new Rectangle(9f,   3.2f, 2f, 0.6f));
                 L.solids.add(new Rectangle(15f,  2.8f, 3f, 0.6f));
-
-                // ⚠️ Ajuste importante:
-                //   Esta estaba en y=3.8. Si colocas una caja en (24.0, 3.8),
-                //   se metía dentro del sólido y no podías cogerla.
-                //   La bajamos a y=3.2 (top = 3.8) para que la caja apoye encima.
-                L.solids.add(new Rectangle(23f,  3.2f, 3f, 0.6f)); // <— bajada 0.6
-
+                L.solids.add(new Rectangle(23f,  3.2f, 3f, 0.6f));
                 L.solids.add(new Rectangle(34f,  2.8f, 3f, 0.6f));
 
                 // Salida final
@@ -117,8 +104,7 @@ public class Level {
             }
 
             default:
-                // Si llega un número raro, volvemos al nivel 1
-                return create(1);
+                return create(1); // Si llega un número raro, volvemos al nivel 1
         }
 
         return L;

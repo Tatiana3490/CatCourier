@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.svalero.mijuego.util.Constants;
+import lombok.Getter;
 
 import java.util.List;
 
@@ -25,6 +26,9 @@ public class Player {
     // --- Sistema de 2 golpes (al 2º muero) ---
     private int hits = 0;            // golpes recibidos (0, 1, 2)
     private static final int MAX_HITS = 2;
+
+    //¿El jugador ya ha muerto (dos golpes)?
+    @Getter
     private boolean dead = false;    // flag de “muerto” cuando llego al 2º golpe
 
     // --- Invulnerabilidad tras recibir un golpe (para no contar varios en el mismo frame) ---
@@ -41,7 +45,7 @@ public class Player {
         pos.set(x, y);
     }
 
-    /** Rectángulo actual del jugador (lo uso para collisions “AABB”). */
+    //Rectángulo actual del jugador
     public Rectangle getBounds() {
         bounds.setPosition(pos.x, pos.y);
         return bounds;
@@ -119,13 +123,13 @@ public class Player {
     //   SISTEMA DE GOLPES / VIDA
     // ==========================
 
-    /** Activo el escudo X segundos (mientras dure, ignoro golpes). */
+    //Activo el escudo X segundos (mientras dure, ignoro golpes).
     public void activateShield(float seconds) {
         // si me vuelven a dar un escudo más largo, me quedo con el mayor
         shieldTime = Math.max(shieldTime, seconds);
     }
 
-    /** ¿Tengo el escudo activo ahora mismo? */
+    // ¿Tengo el escudo activo ahora mismo?
     public boolean isShieldActive() {
         return shieldTime > 0f;
     }
@@ -162,11 +166,6 @@ public class Player {
             energy = 0;
         }
         return true;
-    }
-
-    /** ¿El jugador ya ha muerto (dos golpes)? */
-    public boolean isDead() {
-        return dead;
     }
 
     // ==========================
