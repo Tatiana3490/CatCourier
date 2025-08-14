@@ -30,8 +30,9 @@ import com.svalero.mijuego.util.Constants;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Function;
 
-/** Pantalla principal del juego (mi “escena” del nivel). */
+/*Pantalla principal del juego */
 public class GameScreen implements Screen {
 
     // ==========================
@@ -119,6 +120,9 @@ public class GameScreen implements Screen {
         level = Level.create(levelNumber);
         player = new Player(2f, 2f);
 
+        // Si entro directo al nivel 1 sin pasar por menú, reseteo el acumulado por si acaso.
+        if (levelNumber == 1) game.totalScore = 0;
+
         // --- Spawns muy simples por nivel (a mano) ---
         switch (levelNumber) {
             case 1:
@@ -144,20 +148,24 @@ public class GameScreen implements Screen {
                 requiredPackages = 3;
                 break;
 
-            case 3:
+                case 3:
                 enemiesWalk.add(new EnemyWalker(5.5f, 1f, 5.5f, 9f));
                 enemiesWalk.add(new EnemyWalker(18f, 1f, 18f, 23f));
-                enemiesFly.add(new EnemyFlyer(13f, 3.2f));
                 enemiesFly.add(new EnemyFlyer(25f, 4.0f));
+
                 enemiesJump.add(new EnemyJumper(13.0f, 1.2f));
+
                 items.add(new Collectible(6.5f, 2.7f));
                 items.add(new Collectible(12.2f, 3.2f));
                 items.add(new Collectible(19.0f, 4.1f));
+
                 alliesHeal.add(new AllyHealer(22.5f, 1f));
                 alliesBonus.add(new AllyScoreBonus(27.2f, 3.6f, 150));
                 alliesShield.add(new AllyShield(9.5f, 1f, 6f));
+
                 requiredPackages = 3;
                 break;
+
 
             case 4:
                 // Enemigos base
@@ -186,7 +194,7 @@ public class GameScreen implements Screen {
         }
         collectedPackages = 0;
 
-        // --- Animación del jugador (si no existe player.png, no pasa nada) ---
+        // --- Animación del jugador ---
         if (Gdx.files.internal("player.png").exists()) {
             playerSheet = new Texture("player.png");
             int rows = 3, cols = 6;
@@ -204,7 +212,7 @@ public class GameScreen implements Screen {
             animJump.setPlayMode(com.badlogic.gdx.graphics.g2d.Animation.PlayMode.NORMAL);
         }
 
-        // --- SFX (cargados de forma defensiva) ---
+        // --- SFX (defensivo) ---
         try {
             if (Gdx.files.internal("sfx/jump.wav").exists())    sJump    = Gdx.audio.newSound(Gdx.files.internal("sfx/jump.wav"));
             if (Gdx.files.internal("sfx/collect.wav").exists()) sCollect = Gdx.audio.newSound(Gdx.files.internal("sfx/collect.wav"));
@@ -213,7 +221,7 @@ public class GameScreen implements Screen {
             Gdx.app.error("SFX", "Error cargando SFX: " + e.getMessage(), e);
         }
 
-        // --- Texturas PNG (si falta alguna, simplemente no la dibujo) ---
+        // --- Texturas PNG (opcionales) ---
         if (Gdx.files.internal("enemy_walker.png").exists()) texEnemyWalker = new Texture("enemy_walker.png");
         if (Gdx.files.internal("enemy_flyer.png").exists())  texEnemyFlyer  = new Texture("enemy_flyer.png");
         if (Gdx.files.internal("enemy_jumper.png").exists()) texEnemyJumper = new Texture("enemy_jumper.png");
@@ -227,10 +235,11 @@ public class GameScreen implements Screen {
         if (Gdx.files.internal("enemy_mouse.png").exists())  texEnemyMouse  = new Texture("enemy_mouse.png");
         if (Gdx.files.internal("enemy_cheese.png").exists()) texEnemyCheese = new Texture("enemy_cheese.png");
 
-        // --- HUD (arriba del todo) ---
+        // --- HUD (muestro el score GLOBAL) ---
         hud = new Hud(game.batch);
         hud.setLevel(levelNumber);
         hud.setGoal(collectedPackages, requiredPackages);
+        hud.setScore(game.totalScore); // uso el acumulado
         Gdx.input.setInputProcessor(hud.stage);
 
         // --- UI de pausa ---
@@ -306,12 +315,12 @@ public class GameScreen implements Screen {
     // ==========================
     @Override
     public void render(float delta) {
-        // --- Pausar con P o ESC ---
+        // Pausa con P o ESC
         if (Gdx.input.isKeyJustPressed(Input.Keys.P) || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             togglePause();
         }
 
-        // Teclas de prueba para oír SFX (las dejo mientras ajusto sonidos)
+        // Teclas de prueba para oír SFX
         if (Gdx.input.isKeyJustPressed(Input.Keys.J) && sJump != null)    AudioManager.play(sJump);
         if (Gdx.input.isKeyJustPressed(Input.Keys.C) && sCollect != null) AudioManager.play(sCollect);
         if (Gdx.input.isKeyJustPressed(Input.Keys.H) && sHit != null)     AudioManager.play(sHit);
@@ -320,17 +329,14 @@ public class GameScreen implements Screen {
         if (!paused) {
             // Físicas y colisiones del jugador con el mapa
             player.update(delta, level.solids);
-            // Escudo temporal (se consume aquí)
-            player.tickShield(delta);
+            player.tickShield(delta); // escudo baja aquí
 
-            // Sonido de salto (lo disparo sólo el frame en el que empezó el salto)
-            if (player.consumeJustJumped() && sJump != null) {
-                AudioManager.play(sJump);
-            }
+            // Sonido de salto (sólo el frame en el que empezó el salto)
+            if (player.consumeJustJumped() && sJump != null) AudioManager.play(sJump);
 
-            // Si me caigo fuera del mundo, acabo la partida
+            // Caída fuera del mundo = Game Over con score acumulado
             if (player.pos.y < -2f) {
-                game.setScreen(new GameOverScreen(game, player.score));
+                game.setScreen(new GameOverScreen(game, game.totalScore));
                 return;
             }
 
@@ -348,34 +354,24 @@ public class GameScreen implements Screen {
                 }
             }
 
-            // Daño por contacto (Player tiene invulnerabilidad interna para no “spamear”)
-            for (EnemyWalker e : enemiesWalk)
-                if (player.getBounds().overlaps(e.getBounds()))
-                    if (player.onHit() && sHit != null) AudioManager.play(sHit);
-            for (EnemyFlyer f : enemiesFly)
-                if (player.getBounds().overlaps(f.getBounds()))
-                    if (player.onHit() && sHit != null) AudioManager.play(sHit);
-            for (EnemyJumper j : enemiesJump)
-                if (player.getBounds().overlaps(j.getBounds()))
-                    if (player.onHit() && sHit != null) AudioManager.play(sHit);
-            for (EnemyDog d : enemiesDog)
-                if (player.getBounds().overlaps(d.getBounds()))
-                    if (player.onHit() && sHit != null) AudioManager.play(sHit);
-            for (EnemyMouse m : enemiesMouse)
-                if (player.getBounds().overlaps(m.getBounds()))
-                    if (player.onHit() && sHit != null) AudioManager.play(sHit);
+            // Daño por contacto (uso helper genérico con referencia a método)
+            checkTouch(enemiesWalk, EnemyWalker::getBounds);
+            checkTouch(enemiesFly,  EnemyFlyer::getBounds);
+            checkTouch(enemiesJump, EnemyJumper::getBounds);
+            checkTouch(enemiesDog,  EnemyDog::getBounds);
+            checkTouch(enemiesMouse, EnemyMouse::getBounds);
 
-            // Si he recibido el 2º golpe → muerto → fin partida
+            // ¿Muerto por 2º golpe? fin con score acumulado
             if (player.isDead()) {
-                game.setScreen(new GameOverScreen(game, player.score));
+                game.setScreen(new GameOverScreen(game, game.totalScore));
                 return;
             }
 
-            // Aliados: bonus, curación y escudo (una sola vez cada uno)
+            // Aliados: bonus, curación y escudo (una vez) —> TODOS suman al marcador global
             for (AllyScoreBonus b : alliesBonus) {
                 if (!b.isUsed() && player.getBounds().overlaps(b.getBounds())) {
                     b.markUsed();
-                    player.score += b.bonus;
+                    game.totalScore += b.bonus;
                     if (sCollect != null) AudioManager.play(sCollect);
                 }
             }
@@ -394,18 +390,20 @@ public class GameScreen implements Screen {
                 }
             }
 
-            // Recoger paquetes (suben score y cuentan para abrir la puerta)
+            // Recoger paquetes (SUMAN AL MARCADOR GLOBAL y cuentan para la puerta)
             for (Iterator<Collectible> it = items.iterator(); it.hasNext();) {
                 Collectible c = it.next();
                 if (!c.isCollected() && player.getBounds().overlaps(c.getBounds())){
                     c.collect();
-                    player.score += c.value;
+                    game.totalScore += c.value;
                     collectedPackages++;
                     if (sCollect != null) AudioManager.play(sCollect);
                 }
             }
-            // Quito del array los ya recogidos
             items.removeIf(Collectible::isCollected);
+
+            // Actualizo HUD con score acumulado
+            hud.setScore(game.totalScore);
 
             // Cámara sigue al jugador pero no se sale del nivel
             worldCam.position.set(
@@ -424,7 +422,7 @@ public class GameScreen implements Screen {
                 int nextLevel = levelNumber + 1;
                 int MAX_LEVEL = 4;
                 if (nextLevel <= MAX_LEVEL) game.setScreen(new GameScreen(game, nextLevel));
-                else                         game.setScreen(new GameOverScreen(game, player.score));
+                else                         game.setScreen(new GameOverScreen(game, game.totalScore));
                 return;
             }
 
@@ -526,8 +524,7 @@ public class GameScreen implements Screen {
 
         game.batch.end();
 
-        // 3) HUD encima de todo
-        hud.setScore(player.score);
+        // 3) HUD encima de todo (score global ya actualizado más arriba)
         hud.setEnergy(player.energy);
         hud.setGoal(collectedPackages, requiredPackages);
         hud.stage.act(paused ? 0f : Gdx.graphics.getDeltaTime());
@@ -546,6 +543,23 @@ public class GameScreen implements Screen {
             pauseStage.act(Gdx.graphics.getDeltaTime());
             pauseStage.draw();
         }
+    }
+
+    // ==========================
+    //   HELPERS DE COLISIÓN
+    // ==========================
+    /** Helper genérico: le paso una lista de cualquier tipo y una función para obtener su Rectangle. */
+    private <T> boolean checkTouch(List<T> list, Function<T, Rectangle> getBounds) {
+        Rectangle pb = player.getBounds();
+        boolean hit = false;
+        for (T e : list) {
+            if (pb.overlaps(getBounds.apply(e))) {
+                // Aquí mismo registro el golpe e incluso disparo el SFX
+                if (player.onHit() && sHit != null) AudioManager.play(sHit);
+                hit = true;
+            }
+        }
+        return hit;
     }
 
     // ==========================
@@ -590,7 +604,7 @@ public class GameScreen implements Screen {
     }
 
     // ==========================
-    //   AUDIO (super básico)
+    //   AUDIO
     // ==========================
     private void updateVolumes() {
         AudioManager.setMusicVolume(muteMusic ? 0f : 1f);

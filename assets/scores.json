@@ -1,6 +1,24 @@
 [
 {
 	class: com.svalero.mijuego.scores.ScoreEntry
+	name: Tati4
+	score: 390
+	date: 2025-08-14 17:07
+}
+{
+	class: com.svalero.mijuego.scores.ScoreEntry
+	name: Tati5
+	score: 390
+	date: 2025-08-14 17:20
+}
+{
+	class: com.svalero.mijuego.scores.ScoreEntry
+	name: Tati6
+	score: 390
+	date: 2025-08-14 17:28
+}
+{
+	class: com.svalero.mijuego.scores.ScoreEntry
 	name: Terminé!
 	score: 240
 	date: 2025-08-13 02:03
