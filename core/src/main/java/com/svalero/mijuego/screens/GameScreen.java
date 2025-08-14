@@ -31,36 +31,40 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-/** Pantalla principal del juego. */
+/** Pantalla principal del juego (mi “escena” del nivel). */
 public class GameScreen implements Screen {
 
+    // ==========================
+    //   REFERENCIAS / ESTADO
+    // ==========================
     private final MiJuego game;
     private final int levelNumber;
 
-    // Mundo/cámara
+    // Mundo/cámara (pinto en unidades de mundo, no en píxeles)
     private OrthographicCamera worldCam;
     private ExtendViewport worldViewport;
     private ShapeRenderer shapes;
 
-    // Entidades
+    // Entidades principales
     private Player player;
     private Level level;
+
+    // Listas de NPCs/ítems (muy básico)
     private final List<EnemyWalker>    enemiesWalk  = new ArrayList<>();
     private final List<EnemyFlyer>     enemiesFly   = new ArrayList<>();
     private final List<EnemyJumper>    enemiesJump  = new ArrayList<>();
     private final List<EnemyDog>       enemiesDog   = new ArrayList<>();
     private final List<EnemyMouse>     enemiesMouse = new ArrayList<>();
     private final List<EnemyCheese>    enemiesCheese= new ArrayList<>();
-
     private final List<Collectible>    items        = new ArrayList<>();
     private final List<AllyHealer>     alliesHeal   = new ArrayList<>();
     private final List<AllyScoreBonus> alliesBonus  = new ArrayList<>();
     private final List<AllyShield>     alliesShield = new ArrayList<>();
 
-    // HUD
+    // HUD (marcadores)
     private Hud hud;
 
-    // Objetivo del nivel
+    // Objetivo para abrir la puerta de salida
     private int requiredPackages;
     private int collectedPackages;
 
@@ -71,30 +75,28 @@ public class GameScreen implements Screen {
 
     // Sonidos
     private Sound sJump, sCollect, sHit;
-    private float hitCooldown = 0f; // pequeño “enfriamiento” para no spamear sfx al chocar
 
-    // Animación jugador (spritesheet)
+    // Animación jugador (si no hay sprite, pinto un rectángulo y ya)
     private Texture playerSheet;
     private TextureRegion[][] playerFrames;
     private TextureRegion currentFrame;
     private com.badlogic.gdx.graphics.g2d.Animation<TextureRegion> animIdle, animWalk, animJump;
     private float  stateTime = 0f;
     private boolean facingRight = true;
-    private boolean lastOnGround = true;
 
-    // Texturas NPCs / ítems (todas opcionales: si no existen tiro de formas)
+    // Texturas (todas opcionales)
     private Texture texEnemyWalker, texEnemyFlyer, texEnemyJumper;
     private Texture texAllyHealer, texAllyBonus, texAllyShield;
     private Texture texCollectible;
     private Texture texEnemyDog, texEnemyMouse, texEnemyCheese;
-
-    // Puerta (dibujada más grande, “apoyada” en el suelo)
     private Texture texDoorClosed, texDoorOpen;
+
+    // Escala y ajuste visual de la puerta
     private static final float DOOR_DRAW_SCALE_X = 1.8f;
     private static final float DOOR_DRAW_SCALE_Y = 1.8f;
-    private static final float DOOR_FLOOR_EPS    = 1.0f; // empujón visual hacia abajo
+    private static final float DOOR_FLOOR_EPS    = 1.0f;
 
-    // Volúmenes
+    // Volúmenes globales muy básicos (0 o 1)
     private boolean muteMusic = false;
     private boolean muteSfx   = false;
 
@@ -103,22 +105,25 @@ public class GameScreen implements Screen {
         this.levelNumber = levelNumber;
     }
 
+    // ==========================
+    //   CICLO DE VIDA SCREEN
+    // ==========================
     @Override
     public void show() {
-        // Cámara/viewport
+        // --- Cámara/viewport: 16x9 unidades de mundo ---
         worldCam = new OrthographicCamera();
         worldViewport = new ExtendViewport(16f, 9f, worldCam);
         shapes = new ShapeRenderer();
 
-        // Nivel y jugador
+        // --- Cargar nivel y crear jugador ---
         level = Level.create(levelNumber);
         player = new Player(2f, 2f);
 
-        // Spawns por nivel (muy simple, lo dejo aquí a mano)
+        // --- Spawns muy simples por nivel (a mano) ---
         switch (levelNumber) {
             case 1:
                 enemiesWalk.add(new EnemyWalker(6f, 1f, 6f, 10f));
-                enemiesFly.add(new EnemyFlyer(12f, 3.0f));
+                enemiesFly.add(new EnemyFlyer(12f, 3f));
                 items.add(new Collectible(10.5f, 4.7f));
                 items.add(new Collectible(16.0f, 5.9f));
                 alliesHeal.add(new AllyHealer(8.5f, 1f));
@@ -162,18 +167,17 @@ public class GameScreen implements Screen {
                 enemiesFly.add(new EnemyFlyer(16f, 4.0f));
                 enemiesFly.add(new EnemyFlyer(28f, 3.6f));
                 enemiesJump.add(new EnemyJumper(24.0f, 1.2f));
-                // Nuevos enemigos (perro, ratón, queso)
-                enemiesDog.add(new EnemyDog(10f, 1f, 3f, 6f));        // persigue si me acerco
-                enemiesMouse.add(new EnemyMouse(14f, 1f, 0.5f, 5f));  // zigzag pequeño
-                enemiesCheese.add(new EnemyCheese(18f, 1f, 2f, true)); // “explota” 1 vez si me acerco
-
-                // Cajas (sobre plataformas del Level 4)
+                // Enemigos nuevos
+                enemiesDog.add(new EnemyDog(10f, 1f, 3f, 6f));
+                enemiesMouse.add(new EnemyMouse(14f, 1f, 0.5f, 5f));
+                enemiesCheese.add(new EnemyCheese(18f, 1f, 2f, true));
+                // Ítems sobre plataformas (ligero offset para que “no se claven”)
                 final float EPS = 0.05f;
                 items.add(new Collectible( 6.5f, 2.8f + EPS));
                 items.add(new Collectible(16.5f, 3.4f + EPS));
                 items.add(new Collectible(24.5f, 3.8f + EPS));
                 items.add(new Collectible(35.5f, 3.4f + EPS));
-
+                // Aliados
                 alliesHeal.add(new AllyHealer(31f, 1f));
                 alliesShield.add(new AllyShield(26.0f, 1f, 6f));
                 alliesBonus.add(new AllyScoreBonus(36.0f, 1f, 200));
@@ -182,7 +186,7 @@ public class GameScreen implements Screen {
         }
         collectedPackages = 0;
 
-        // Animación jugador (si no hay player.png, pinto un rectángulo y listo)
+        // --- Animación del jugador (si no existe player.png, no pasa nada) ---
         if (Gdx.files.internal("player.png").exists()) {
             playerSheet = new Texture("player.png");
             int rows = 3, cols = 6;
@@ -200,19 +204,16 @@ public class GameScreen implements Screen {
             animJump.setPlayMode(com.badlogic.gdx.graphics.g2d.Animation.PlayMode.NORMAL);
         }
 
-        // SFX (defensivo)
+        // --- SFX (cargados de forma defensiva) ---
         try {
-            if (Gdx.files.internal("sfx/jump.wav").exists())
-                sJump = Gdx.audio.newSound(Gdx.files.internal("sfx/jump.wav"));
-            if (Gdx.files.internal("sfx/collect.wav").exists())
-                sCollect = Gdx.audio.newSound(Gdx.files.internal("sfx/collect.wav"));
-            if (Gdx.files.internal("sfx/hit.wav").exists())
-                sHit = Gdx.audio.newSound(Gdx.files.internal("sfx/hit.wav"));
+            if (Gdx.files.internal("sfx/jump.wav").exists())    sJump    = Gdx.audio.newSound(Gdx.files.internal("sfx/jump.wav"));
+            if (Gdx.files.internal("sfx/collect.wav").exists()) sCollect = Gdx.audio.newSound(Gdx.files.internal("sfx/collect.wav"));
+            if (Gdx.files.internal("sfx/hit.wav").exists())     sHit     = Gdx.audio.newSound(Gdx.files.internal("sfx/hit.wav"));
         } catch (Exception e) {
             Gdx.app.error("SFX", "Error cargando SFX: " + e.getMessage(), e);
         }
 
-        // Texturas PNG (si no están, simplemente no dibujo sprite y uso fallback)
+        // --- Texturas PNG (si falta alguna, simplemente no la dibujo) ---
         if (Gdx.files.internal("enemy_walker.png").exists()) texEnemyWalker = new Texture("enemy_walker.png");
         if (Gdx.files.internal("enemy_flyer.png").exists())  texEnemyFlyer  = new Texture("enemy_flyer.png");
         if (Gdx.files.internal("enemy_jumper.png").exists()) texEnemyJumper = new Texture("enemy_jumper.png");
@@ -226,17 +227,17 @@ public class GameScreen implements Screen {
         if (Gdx.files.internal("enemy_mouse.png").exists())  texEnemyMouse  = new Texture("enemy_mouse.png");
         if (Gdx.files.internal("enemy_cheese.png").exists()) texEnemyCheese = new Texture("enemy_cheese.png");
 
-        // HUD
+        // --- HUD (arriba del todo) ---
         hud = new Hud(game.batch);
         hud.setLevel(levelNumber);
         hud.setGoal(collectedPackages, requiredPackages);
         Gdx.input.setInputProcessor(hud.stage);
 
-        // UI Pausa
+        // --- UI de pausa ---
         setupPauseUI();
     }
 
-    /** Ventana de pausa con mutear música/efectos + navegación. */
+    /** Ventana de pausa con mute de música/efectos y navegación básica. */
     private void setupPauseUI(){
         pauseSkin = UiStyles.makeSkin();
         pauseStage = new Stage(new FitViewport(Constants.VIRTUAL_WIDTH, Constants.VIRTUAL_HEIGHT), game.batch);
@@ -288,6 +289,7 @@ public class GameScreen implements Screen {
         });
     }
 
+    /** Alterno pausa y paso el input al stage que toca. */
     private void togglePause(){
         paused = !paused;
         if (paused) {
@@ -299,103 +301,74 @@ public class GameScreen implements Screen {
         }
     }
 
+    // ==========================
+    //   BUCLE PRINCIPAL
+    // ==========================
     @Override
     public void render(float delta) {
-        // Pausa con P o ESC
+        // --- Pausar con P o ESC ---
         if (Gdx.input.isKeyJustPressed(Input.Keys.P) || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             togglePause();
         }
 
-        // Botones de test para SFX (me sirven mientras maqueteo sonidos)
+        // Teclas de prueba para oír SFX (las dejo mientras ajusto sonidos)
         if (Gdx.input.isKeyJustPressed(Input.Keys.J) && sJump != null)    AudioManager.play(sJump);
         if (Gdx.input.isKeyJustPressed(Input.Keys.C) && sCollect != null) AudioManager.play(sCollect);
         if (Gdx.input.isKeyJustPressed(Input.Keys.H) && sHit != null)     AudioManager.play(sHit);
 
-        // ===== UPDATE =====
+        // ========== UPDATE ==========
         if (!paused) {
-            // Físicas básicas y colisiones con el mapa
+            // Físicas y colisiones del jugador con el mapa
             player.update(delta, level.solids);
-
-            // 👇 importante: el escudo va bajando tiempo aquí (si lo tengo activo)
+            // Escudo temporal (se consume aquí)
             player.tickShield(delta);
 
-            // Muerte por caída (si se sale por abajo del mundo)
+            // Sonido de salto (lo disparo sólo el frame en el que empezó el salto)
+            if (player.consumeJustJumped() && sJump != null) {
+                AudioManager.play(sJump);
+            }
+
+            // Si me caigo fuera del mundo, acabo la partida
             if (player.pos.y < -2f) {
                 game.setScreen(new GameOverScreen(game, player.score));
                 return;
             }
 
-            // Enfriamiento del sonido de golpe
-            if (hitCooldown > 0f) hitCooldown -= delta;
-
-            // Sonido al inicio de un salto (una sola vez por salto)
-            if (lastOnGround && !player.onGround && player.vel.y > 0f && sJump != null) AudioManager.play(sJump);
-            lastOnGround = player.onGround;
-
-            // Movimiento de NPCs
+            // Mover NPCs
             for (EnemyWalker e : enemiesWalk) e.update(delta);
             for (EnemyFlyer  f : enemiesFly)  f.update(delta);
             for (EnemyJumper j : enemiesJump) j.update(delta);
-            for (EnemyDog d : enemiesDog)     d.update(delta, player.pos.x);
-            for (EnemyMouse m : enemiesMouse) m.update(delta);
+            for (EnemyDog    d : enemiesDog)  d.update(delta, player.pos.x);
+            for (EnemyMouse  m : enemiesMouse) m.update(delta);
 
-            // Queso (trigger de daño cuando me acerco). Ojo: este puede “pegar” aunque tenga escudo,
-            // si quiero que NO pegue con escudo, meto el check dentro del if (!player.isShieldActive()).
+            // Queso: si entro en rango, cuenta como golpe
             for (EnemyCheese c : enemiesCheese) {
-                if (c.checkTrigger(player.pos.x, player.pos.y) && !player.isShieldActive()) {
-                    player.energy = Math.max(0, player.energy - 20);
-                    if (sHit != null) AudioManager.play(sHit);
+                if (c.checkTrigger(player.pos.x, player.pos.y)) {
+                    if (player.onHit() && sHit != null) AudioManager.play(sHit);
                 }
             }
 
-            // Daño por colisión directa (si NO tengo escudo)
-            if (!player.isShieldActive()) {
-                for (EnemyWalker e : enemiesWalk) {
-                    if (player.getBounds().overlaps(e.getBounds())) {
-                        int prev = player.energy;
-                        player.energy = Math.max(0, player.energy - 10);
-                        if (player.energy < prev && hitCooldown <= 0f && sHit != null) {
-                            AudioManager.play(sHit); hitCooldown = 0.4f;
-                        }
-                    }
-                }
-                for (EnemyFlyer f : enemiesFly) {
-                    if (player.getBounds().overlaps(f.getBounds())) {
-                        int prev = player.energy;
-                        player.energy = Math.max(0, player.energy - 10);
-                        if (player.energy < prev && hitCooldown <= 0f && sHit != null) {
-                            AudioManager.play(sHit); hitCooldown = 0.4f;
-                        }
-                    }
-                }
-                for (EnemyJumper j : enemiesJump) {
-                    if (player.getBounds().overlaps(j.getBounds())) {
-                        int prev = player.energy;
-                        player.energy = Math.max(0, player.energy - 10);
-                        if (player.energy < prev && hitCooldown <= 0f && sHit != null) {
-                            AudioManager.play(sHit); hitCooldown = 0.4f;
-                        }
-                    }
-                }
-                // Perro y ratón también hacen daño por contacto (si quisiese):
-                for (EnemyDog d : enemiesDog) {
-                    if (player.getBounds().overlaps(d.getBounds())) {
-                        int prev = player.energy;
-                        player.energy = Math.max(0, player.energy - 10);
-                        if (player.energy < prev && hitCooldown <= 0f && sHit != null) {
-                            AudioManager.play(sHit); hitCooldown = 0.4f;
-                        }
-                    }
-                }
-                for (EnemyMouse m : enemiesMouse) {
-                    if (player.getBounds().overlaps(m.getBounds())) {
-                        int prev = player.energy;
-                        player.energy = Math.max(0, player.energy - 10);
-                        if (player.energy < prev && hitCooldown <= 0f && sHit != null) {
-                            AudioManager.play(sHit); hitCooldown = 0.4f;
-                        }
-                    }
-                }
+            // Daño por contacto (Player tiene invulnerabilidad interna para no “spamear”)
+            for (EnemyWalker e : enemiesWalk)
+                if (player.getBounds().overlaps(e.getBounds()))
+                    if (player.onHit() && sHit != null) AudioManager.play(sHit);
+            for (EnemyFlyer f : enemiesFly)
+                if (player.getBounds().overlaps(f.getBounds()))
+                    if (player.onHit() && sHit != null) AudioManager.play(sHit);
+            for (EnemyJumper j : enemiesJump)
+                if (player.getBounds().overlaps(j.getBounds()))
+                    if (player.onHit() && sHit != null) AudioManager.play(sHit);
+            for (EnemyDog d : enemiesDog)
+                if (player.getBounds().overlaps(d.getBounds()))
+                    if (player.onHit() && sHit != null) AudioManager.play(sHit);
+            for (EnemyMouse m : enemiesMouse)
+                if (player.getBounds().overlaps(m.getBounds()))
+                    if (player.onHit() && sHit != null) AudioManager.play(sHit);
+
+            // Si he recibido el 2º golpe → muerto → fin partida
+            if (player.isDead()) {
+                game.setScreen(new GameOverScreen(game, player.score));
+                return;
             }
 
             // Aliados: bonus, curación y escudo (una sola vez cada uno)
@@ -416,12 +389,12 @@ public class GameScreen implements Screen {
             for (AllyShield s : alliesShield) {
                 if (!s.isUsed() && player.getBounds().overlaps(s.getBounds())) {
                     s.markUsed();
-                    player.activateShield(s.duration); // ← esto enciende el escudo del jugador X seg.
+                    player.activateShield(s.duration);
                     if (sCollect != null) AudioManager.play(sCollect);
                 }
             }
 
-            // Recoger paquetes (suben score y cuentan para abrir puerta)
+            // Recoger paquetes (suben score y cuentan para abrir la puerta)
             for (Iterator<Collectible> it = items.iterator(); it.hasNext();) {
                 Collectible c = it.next();
                 if (!c.isCollected() && player.getBounds().overlaps(c.getBounds())){
@@ -431,16 +404,21 @@ public class GameScreen implements Screen {
                     if (sCollect != null) AudioManager.play(sCollect);
                 }
             }
+            // Quito del array los ya recogidos
             items.removeIf(Collectible::isCollected);
 
-            // Cámara “sigue” al jugador pero no se sale del nivel
-            worldCam.position.set(player.pos.x + Constants.PLAYER_W/2f, Math.max(player.pos.y, 4.5f), 0);
+            // Cámara sigue al jugador pero no se sale del nivel
+            worldCam.position.set(
+                player.pos.x + Constants.PLAYER_W/2f,
+                Math.max(player.pos.y, 4.5f),
+                0
+            );
             float halfW = worldViewport.getWorldWidth()/2f;
             if (worldCam.position.x < halfW) worldCam.position.x = halfW;
             if (worldCam.position.x > level.widthUnits - halfW) worldCam.position.x = level.widthUnits - halfW;
             worldCam.update();
 
-            // Ir al siguiente nivel o terminar (después de dibujar no tiene sentido seguir)
+            // Si ya tengo suficientes cajas y toco la salida → siguiente nivel o fin
             boolean canExit = collectedPackages >= requiredPackages;
             if (canExit && player.getBounds().overlaps(level.exit)){
                 int nextLevel = levelNumber + 1;
@@ -450,7 +428,7 @@ public class GameScreen implements Screen {
                 return;
             }
 
-            // Animación jugador (selecciono anim según estado)
+            // Selecciono frame del jugador según estado
             stateTime += delta;
             if (playerSheet != null) {
                 boolean moving = Math.abs(player.vel.x) > 0.05f;
@@ -458,34 +436,44 @@ public class GameScreen implements Screen {
                 if (airborne)      currentFrame = animJump.getKeyFrame(stateTime);
                 else if (moving)   currentFrame = animWalk.getKeyFrame(stateTime);
                 else               currentFrame = animIdle.getKeyFrame(stateTime);
+
+                // Flip horizontal según dirección de movimiento
                 if (moving) facingRight = player.vel.x >= 0f;
-                if (currentFrame != null && currentFrame.isFlipX() == !facingRight) currentFrame.flip(true, false);
+                if (currentFrame != null && currentFrame.isFlipX() == !facingRight) {
+                    currentFrame.flip(true, false);
+                }
             }
         }
 
-        // ===== DRAW =====
+        // ========== DRAW ==========
         Gdx.gl.glClearColor(0.12f,0.14f,0.18f,1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         boolean canExitNow = collectedPackages >= requiredPackages;
         Rectangle exit = level.exit;
 
-        // 1) Geometría (suelo y fallback)
+        // 1) Geometría (suelos + fallback de puerta y jugador si no hay sprites)
         shapes.setProjectionMatrix(worldCam.combined);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
 
+        // Suelos/plataformas
         shapes.setColor(0.30f, 0.35f, 0.42f, 1f);
         for (Rectangle r : level.solids) shapes.rect(r.x, r.y, r.width, r.height);
 
-        // Si no hay texturas de puerta, pinto un rectángulo para dar feedback
+        // Puerta fallback (si me faltan las texturas)
         if ((texDoorOpen == null && texDoorClosed == null) ||
             (canExitNow && texDoorOpen == null) ||
             (!canExitNow && texDoorClosed == null)) {
-            shapes.setColor(canExitNow ? 0.1f : 0.05f, canExitNow ? 0.7f : 0.35f, canExitNow ? 0.3f : 0.15f, 1f);
+            shapes.setColor(
+                canExitNow ? 0.1f : 0.05f,
+                canExitNow ? 0.7f : 0.35f,
+                canExitNow ? 0.3f : 0.15f,
+                1f
+            );
             shapes.rect(exit.x, exit.y, exit.width, exit.height);
         }
 
-        // Placeholder del player si no hay spritesheet
+        // Player fallback (rectángulo amarillo) si no tengo sprite
         if (playerSheet == null) {
             shapes.setColor(0.9f, 0.9f, 0.1f, 1f);
             shapes.rect(player.pos.x, player.pos.y, Constants.PLAYER_W, Constants.PLAYER_H);
@@ -496,7 +484,7 @@ public class GameScreen implements Screen {
         game.batch.setProjectionMatrix(worldCam.combined);
         game.batch.begin();
 
-        // Puerta al ras del suelo
+        // Puerta con imagen, apoyada en el suelo
         if (texDoorOpen != null || texDoorClosed != null) {
             float drawW = exit.width  * DOOR_DRAW_SCALE_X;
             float drawH = exit.height * DOOR_DRAW_SCALE_Y;
@@ -516,11 +504,11 @@ public class GameScreen implements Screen {
         if (texEnemyDog != null)
             for (EnemyDog d : enemiesDog)     { Rectangle b = d.getBounds(); game.batch.draw(texEnemyDog, b.x, b.y, b.width, b.height); }
         if (texEnemyMouse != null)
-            for (EnemyMouse m : enemiesMouse)  { Rectangle b = m.getBounds(); game.batch.draw(texEnemyMouse, b.x, b.y, b.width, b.height); }
+            for (EnemyMouse m : enemiesMouse) { Rectangle b = m.getBounds(); game.batch.draw(texEnemyMouse, b.x, b.y, b.width, b.height); }
         if (texEnemyCheese != null)
             for (EnemyCheese c : enemiesCheese){ Rectangle b = c.getBounds(); game.batch.draw(texEnemyCheese, b.x, b.y, b.width, b.height); }
 
-        // Aliados
+        // Aliados (sólo si no están “gastados”)
         if (texAllyHealer != null)
             for (AllyHealer a : alliesHeal)   if (!a.isUsed()) { Rectangle b = a.getBounds(); game.batch.draw(texAllyHealer, b.x, b.y, b.width, b.height); }
         if (texAllyBonus != null)
@@ -528,7 +516,7 @@ public class GameScreen implements Screen {
         if (texAllyShield != null)
             for (AllyShield a : alliesShield) if (!a.isUsed()) { Rectangle b = a.getBounds(); game.batch.draw(texAllyShield, b.x, b.y, b.width, b.height); }
 
-        // Ítems
+        // Ítems (cajas)
         if (texCollectible != null)
             for (Collectible c : items) if (!c.isCollected()) { Rectangle b = c.getBounds(); game.batch.draw(texCollectible, b.x, b.y, b.width, b.height); }
 
@@ -538,7 +526,7 @@ public class GameScreen implements Screen {
 
         game.batch.end();
 
-        // 3) HUD
+        // 3) HUD encima de todo
         hud.setScore(player.score);
         hud.setEnergy(player.energy);
         hud.setGoal(collectedPackages, requiredPackages);
@@ -560,6 +548,9 @@ public class GameScreen implements Screen {
         }
     }
 
+    // ==========================
+    //   EVENTOS SECUNDARIOS
+    // ==========================
     @Override public void resize(int width, int height){
         worldViewport.update(width, height, true);
         hud.stage.getViewport().update(width, height, true);
@@ -569,6 +560,9 @@ public class GameScreen implements Screen {
     @Override public void resume(){}
     @Override public void hide(){}
 
+    // ==========================
+    //   LIMPIEZA DE RECURSOS
+    // ==========================
     @Override
     public void dispose(){
         if (shapes != null) shapes.dispose();
@@ -595,7 +589,9 @@ public class GameScreen implements Screen {
         if (texEnemyCheese != null) texEnemyCheese.dispose();
     }
 
-    // Volúmenes (muy básico: 0 o 1)
+    // ==========================
+    //   AUDIO (super básico)
+    // ==========================
     private void updateVolumes() {
         AudioManager.setMusicVolume(muteMusic ? 0f : 1f);
         AudioManager.setSfxVolume(muteSfx ? 0f : 1f);

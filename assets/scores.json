@@ -19,6 +19,12 @@
 }
 {
 	class: com.svalero.mijuego.scores.ScoreEntry
+	name: Tati2
+	score: 40
+	date: 2025-08-13 12:44
+}
+{
+	class: com.svalero.mijuego.scores.ScoreEntry
 	name: Tatiana
 	score: 30
 	date: 2025-08-12 13:30
